@@ -1,0 +1,70 @@
+"model" = "gpt-6.1-sol"
+"model_reasoning_effort" = "medium"
+"service_tier" = "default"
+"personality" = "pragmatic"
+"model_verbosity" = "low"
+"model_reasoning_summary" = "concise"
+
+[features]
+hooks = true
+js_repl = false
+
+["plugins"]
+
+["plugins"."linear@openai-curated"]
+"enabled" = true
+
+["plugins"."slack@openai-curated"]
+"enabled" = true
+
+["plugins"."google-drive@openai-curated"]
+"enabled" = true
+
+["plugins"."github@openai-curated"]
+"enabled" = true
+
+["plugins"."chrome@openai-bundled"]
+"enabled" = true
+
+["plugins"."documents@openai-primary-runtime"]
+"enabled" = true
+
+["plugins"."pdf@openai-primary-runtime"]
+"enabled" = true
+
+["plugins"."spreadsheets@openai-primary-runtime"]
+"enabled" = true
+
+["plugins"."presentations@openai-primary-runtime"]
+"enabled" = true
+
+["plugins"."template-creator@openai-primary-runtime"]
+"enabled" = true
+
+["plugins"."visualize@openai-bundled"]
+"enabled" = true
+
+["plugins"."browser@openai-bundled"]
+"enabled" = true
+
+["plugins"."codex-app-tools@openai-bundled"]
+"enabled" = true
+
+["plugins"."unified-computer-use@openai-bundled"]
+"enabled" = true
+
+["plugins"."computer-use@openai-bundled"]
+"enabled" = true
+
+["plugins"."code-review@openai-bundled"]
+"enabled" = true
+
+["desktop"]
+"keepRemoteControlAwakeWhilePluggedIn" = true
+"preventSleepWhileRunning" = true
+"show-context-window-usage" = true
+"followUpQueueMode" = "steer"
+"dock-icon-preference" = "app-default"
+"enabled-reasoning-efforts" = ["low", "medium", "high", "xhigh", "ultra", "max"]
+"git-pull-request-merge-method" = "squash"
+"conversationDetailMode" = "STEPS_PROSE"

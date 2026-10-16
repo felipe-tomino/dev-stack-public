@@ -1,0 +1,182 @@
+#!/opt/homebrew/bin/python3
+"""Publish a read-only personal work-queue summary into one explicit cmux workspace.
+
+Each invocation reads the queue anew and touches only personal-backlog status keys.
+No cache: cmux restarts and removed rows converge on the next scheduled invocation.
+"""
+
+import argparse
+import json
+import subprocess
+import sys
+import unicodedata
+import uuid
+from pathlib import Path
+
+
+DATA_ROOT = Path(@HOME_JSON@) / ".local/share/personal-backlog"
+DEFAULT_CONFIG = Path(@HOME_JSON@) / ".config/personal-backlog/cmux.json"
+WORK_QUEUE = str(Path(@HOME_JSON@) / ".local/bin/work-queue")
+CMUX = "/Applications/cmux.app/Contents/Resources/bin/cmux"
+SUMMARY_KEY = "personal-backlog.summary"
+MAX_ROWS = 3
+DISPLAY_LIMIT = 120
+
+
+class SummaryError(Exception):
+    """An error described without subprocess output or task payloads."""
+
+
+def run_command(argv, timeout):
+    """Run literal argv; never expose captured CLI output on failure."""
+    try:
+        result = subprocess.run(
+            argv,
+            cwd=DATA_ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError, UnicodeError) as exc:
+        raise SummaryError("command unavailable") from exc
+    return result.stdout
+
+
+def load_config(path):
+    try:
+        config = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(config, dict):
+            raise ValueError
+        for key in ("workspace_id", "window_id"):
+            if not isinstance(config.get(key), str):
+                raise ValueError
+            uuid.UUID(config[key])
+        limit = config.get("summary_limit", MAX_ROWS)
+        if type(limit) is not int or not 0 <= limit <= MAX_ROWS:
+            raise ValueError
+    except (OSError, UnicodeError, ValueError, TypeError) as exc:
+        raise SummaryError("summary configuration unavailable") from exc
+    return config["workspace_id"], config["window_id"], limit
+
+
+def validate_tasks(payload):
+    """Reject invalid data rather than presenting a falsely empty queue."""
+    if (
+        not isinstance(payload, dict)
+        or type(payload.get("schemaVersion")) is not int
+        or payload["schemaVersion"] != 1
+        or payload.get("kind") != "task-list"
+        or not isinstance(payload.get("tasks"), list)
+    ):
+        raise SummaryError("work queue data unavailable")
+    tasks = payload["tasks"]
+    for task in tasks:
+        if not isinstance(task, dict):
+            raise SummaryError("work queue data unavailable")
+        for field in ("id", "title", "status"):
+            if not isinstance(task.get(field), str) or not task[field].strip():
+                raise SummaryError("work queue data unavailable")
+        task_id = task["id"]
+        if len(task_id) > 64 or any(char.isspace() or not char.isprintable() for char in task_id):
+            raise SummaryError("work queue data unavailable")
+        if "isReady" in task and type(task["isReady"]) is not bool:
+            raise SummaryError("work queue data unavailable")
+    return tasks
+
+
+def read_tasks():
+    output = run_command(
+        [WORK_QUEUE, "task", "list", "--json", "--sort", "priority"], timeout=5
+    )
+    try:
+        payload = json.loads(output)
+    except ValueError as exc:
+        raise SummaryError("work queue data unavailable") from exc
+    return validate_tasks(payload)
+
+
+def one_line(text, limit):
+    """Bound display text only; remove controls and normalize line breaks."""
+    clean = " ".join(
+        "".join(
+            " " if char.isspace() or unicodedata.category(char).startswith("C") else char
+            for char in text
+        ).split()
+    )
+    return clean if len(clean) <= limit else clean[: limit - 1].rstrip() + "…"
+
+
+def build_summary(tasks, limit=MAX_ROWS):
+    """Count all unfinished work; display ready rows in the native CLI order."""
+    open_tasks = [task for task in tasks if task["status"] != "Done"]
+    in_progress = sum(task["status"] == "In Progress" for task in open_tasks)
+    if open_tasks:
+        header = f"Work queue · {len(open_tasks)} open · {in_progress} in progress"
+    else:
+        header = "Work queue · No open tasks"
+    rows = []
+    for task in open_tasks:
+        if task.get("isReady") is False:
+            continue
+        if len(rows) == limit:
+            break
+        prefix = task["id"] + " · "
+        text = prefix + one_line(task["title"], DISPLAY_LIMIT - len(prefix))
+        icon = "arrow.triangle.2.circlepath" if task["status"] == "In Progress" else "circle"
+        rows.append((text, icon))
+    return header, rows
+
+
+def publish_summary(workspace_id, window_id, header, rows, unavailable=False):
+    """Update only our keys, clearing every absent row on each invocation."""
+    target = ["--workspace", workspace_id, "--window", window_id]
+    icon = "exclamationmark.triangle" if unavailable else "checklist"
+    run_command(
+        [CMUX, "set-status", SUMMARY_KEY, header, "--icon", icon, "--priority", "100", *target],
+        timeout=2,
+    )
+    for index in range(MAX_ROWS):
+        key = f"personal-backlog.next.{index + 1}"
+        if index < len(rows):
+            text, row_icon = rows[index]
+            argv = [
+                CMUX, "set-status", key, text, "--icon", row_icon,
+                "--priority", str(99 - index), *target,
+            ]
+        else:
+            argv = [CMUX, "clear-status", key, *target]
+        run_command(argv, timeout=2)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--once", action="store_true", help="Run once (the default).")
+    args = parser.parse_args(argv)
+    try:
+        workspace_id, window_id, limit = load_config(args.config)
+    except SummaryError:
+        print("personal-backlog: summary configuration unavailable", file=sys.stderr)
+        return 1
+
+    unavailable = False
+    try:
+        header, rows = build_summary(read_tasks(), limit)
+    except SummaryError:
+        unavailable = True
+        header, rows = "Work queue · Unavailable", []
+        print("personal-backlog: work queue unavailable", file=sys.stderr)
+    try:
+        publish_summary(workspace_id, window_id, header, rows, unavailable)
+    except SummaryError:
+        # No retries or fallback workspace: launchd's next normal tick will try again.
+        print("personal-backlog: cmux summary destination unavailable", file=sys.stderr)
+        return 1
+    return 1 if unavailable else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

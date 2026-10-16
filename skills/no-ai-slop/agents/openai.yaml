@@ -1,0 +1,4 @@
+interface:
+  display_name: "No AI Slop"
+  short_description: "Remove AI slop while preserving the writer's personal voice."
+  default_prompt: "Edit this draft with no-ai-slop guidance while preserving my personal voice."

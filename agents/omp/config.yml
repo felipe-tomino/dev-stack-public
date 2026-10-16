@@ -1,0 +1,20 @@
+modelRoles:
+  web: openai-codex/gpt-6-luna
+  default: openai-codex/gpt-6.1-sol
+  smol: openai-codex/gpt-6-luna:medium
+  task: openai-codex/gpt-6.1-sol:medium
+  slow: openai-codex/gpt-6-astra:high
+  plan: openai-codex/gpt-6-astra:high
+  designer: openai-codex/gpt-6.1-sol:high
+  vision: openai-codex/gpt-6.1-sol:medium
+symbolPreset: nerd
+composer:
+  shape: band
+theme:
+  dark: titanium
+skills:
+  customDirectories:
+    - ~/.omp/agent/personal-skills
+    - ~/.agents/skills
+  ignoredSkills:
+    - devcontainer

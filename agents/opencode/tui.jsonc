@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "plugin": [
+    "./herdr-tui-session.js",
+    "./tui-plugins/hunk-review.js",
+    "file://@HOME@/.config/opencode/profiles/ws/node_modules/@tarquinen/opencode-dcp/tui.tsx"
+  ]
+}

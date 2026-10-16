@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+HOME_ROOT=@HOME_SHELL@
+QUEUE="$HOME_ROOT/.local/share/personal-backlog"
+BACKLOG="$QUEUE/runtime/node_modules/.bin/backlog"
+export BACKLOG_CWD="$QUEUE"
+export EDITOR=/usr/bin/nano
+export VISUAL="$EDITOR"
+export PATH="$HOME_ROOT/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+cd "$QUEUE"
+
+if [ "${1:-}" = tui ]; then
+    shift
+    TUI_PYTHON="$QUEUE/tui-runtime/bin/python"
+    if [ ! -x "$TUI_PYTHON" ]; then
+        printf '%s\n' \
+            'work-queue: isolated Textual runtime is missing. Use Python 3.11+.' >&2
+        printf 'From %s, run:\n' "$QUEUE" >&2
+        printf '%s\n' \
+            '  python3 -m venv tui-runtime' \
+            '  ./tui-runtime/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-tui.txt' >&2
+        exit 1
+    fi
+    exec "$TUI_PYTHON" "$QUEUE/queue-tui.py" \
+        --queue-command "$HOME_ROOT/.local/bin/work-queue" "$@"
+fi
+
+if [ "$#" -eq 1 ] && { [ "$1" = --help ] || [ "$1" = -h ]; }; then
+    "$BACKLOG" "$@"
+    printf '\nPersonal queue interface:\n  tui       Compact read-only Dock TUI (tui --help for options)\n'
+    exit
+fi
+
+if [ "$#" -eq 0 ]; then
+    # The list UI exits when empty; the native board can create the first task.
+    if [ "$("$BACKLOG" task list --count)" = 0 ]; then
+        set -- board
+    else
+        set -- task list --sort priority
+    fi
+fi
+
+exec "$BACKLOG" "$@"

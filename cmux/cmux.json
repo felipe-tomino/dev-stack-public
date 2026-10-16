@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux.schema.json",
+  "customSidebars": {
+    "renderer": "inProcess"
+  },
+  "sidebar": {
+    "notificationMessageLineLimit": 2
+  },
+  "schemaVersion": 1,
+  "automation": {
+    "socketControlMode": "password"
+  }
+}

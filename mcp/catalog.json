@@ -1,0 +1,12 @@
+{
+  "selected": ["mobbin", "uxpeak", "github"],
+  "mcpServers": {
+    "mobbin": {"type": "http", "url": "https://api.mobbin.com/mcp"},
+    "uxpeak": {"type": "http", "url": "https://connect.uxpeak.com"},
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp",
+      "headers": {"Authorization": "Bearer ${GITHUB_TOKEN}"}
+    }
+  }
+}

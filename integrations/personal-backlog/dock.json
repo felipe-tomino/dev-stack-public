@@ -1,0 +1,10 @@
+{
+  "controls": [
+    {
+      "id": "personal-backlog",
+      "title": "Tasks",
+      "command": "@HOME_SHELL@/.local/bin/work-queue tui",
+      "cwd": "@HOME@/.local/share/personal-backlog"
+    }
+  ]
+}

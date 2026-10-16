@@ -1,0 +1,7 @@
+{
+  "source": "https://github.com/petergyang/no-ai-slop",
+  "observed_version": "1.0.4",
+  "license": "MIT",
+  "export": "Actual installed Claude user skill; no synced/account skills or runtime artifacts included.",
+  "revision": "Not recorded in installed skill metadata; version is not an asserted immutable Git commit."
+}

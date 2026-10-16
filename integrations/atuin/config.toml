@@ -1,0 +1,12 @@
+search_mode = "daemon-fuzzy"
+filter_mode_shell_up_key_binding = "directory"
+workspaces = true
+enter_accept = true
+
+# Keep Atuin as a quiet shell-history layer. Optional AI remains disabled.
+[ai]
+enabled = false
+
+[daemon]
+enabled = true
+autostart = true

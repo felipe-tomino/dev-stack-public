@@ -1,0 +1,119 @@
+{
+  "upstream": "https://github.com/mattpocock/skills",
+  "revision": "49dd158d1076134a641b33efb035946536778336",
+  "license": "MIT",
+  "variant": "personal-shared",
+  "updatePolicy": "Manual review and adaptation only; upstream updates must not overwrite personal guidance.",
+  "purpose": "Historical building-skill attribution and original import hashes only; not an installation lock. no-ai-slop records its separate origin in no-ai-slop/provenance.json.",
+  "skills": [
+    {
+      "name": "research",
+      "sourcePath": "skills/engineering/research",
+      "originalSha256": {
+        "SKILL.md": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4"
+      }
+    },
+    {
+      "name": "domain-modeling",
+      "sourcePath": "skills/engineering/domain-modeling",
+      "originalSha256": {
+        "GLOSSARY-FORMAT.md": "21dcc40cdec8e151a829b98ab1517c1867bc444e3665134a98c6983411996801",
+        "SKILL.md": "7b925d7b1e341a2eeae33ad68a8a8c0ab889a38ddd22a7598e4c240e5a7556a3",
+        "ADR-FORMAT.md": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
+      }
+    },
+    {
+      "name": "codebase-design",
+      "sourcePath": "skills/engineering/codebase-design",
+      "originalSha256": {
+        "DESIGN-IT-TWICE.md": "52b52e75655a27aea59c6966b410bac82448968ad46ef1ebb9f07c274e3ae010",
+        "SKILL.md": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
+        "DEEPENING.md": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+      }
+    },
+    {
+      "name": "tdd",
+      "sourcePath": "skills/engineering/tdd",
+      "originalSha256": {
+        "mocking.md": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef",
+        "tests.md": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a",
+        "SKILL.md": "5505d25bbaa8fc14a79e4d20163936958992a2995b7f1dd1d6197edc9ed722e0"
+      }
+    },
+    {
+      "name": "code-review",
+      "sourcePath": "skills/engineering/code-review",
+      "originalSha256": {
+        "SKILL.md": "09eb147f793e4647949edd32dbad278f0554dfb56e0d46b699cd4c2c55bf0357"
+      }
+    },
+    {
+      "name": "pr",
+      "sourcePath": "skills/engineering/pr",
+      "originalSha256": {
+        "CREDITS.md": "a7a087127665d7298a72280ef6e19c41ad8404523712a788c8dc3ab414bc2497",
+        "SKILL.md": "ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd"
+      }
+    },
+    {
+      "name": "prototype",
+      "sourcePath": "skills/engineering/prototype",
+      "originalSha256": {
+        "SKILL.md": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3",
+        "LOGIC.md": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9",
+        "UI.md": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
+      }
+    },
+    {
+      "name": "diagnosing-bugs",
+      "sourcePath": "skills/engineering/diagnosing-bugs",
+      "originalSha256": {
+        "SKILL.md": "849198df88cdb65fd0d97236604c1fca7ff2f22d2f705f9724a800d0266b118d",
+        "scripts/hitl-loop.template.sh": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+      }
+    },
+    {
+      "name": "retro",
+      "sourcePath": "skills/engineering/retro",
+      "originalSha256": {
+        "SKILL.md": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696"
+      }
+    },
+    {
+      "name": "implement",
+      "sourcePath": "skills/engineering/implement",
+      "originalSha256": {
+        "SKILL.md": "483bdc4ccf4ac31d86ac7beeaa0d0db80313e71e120bb8c59b3196ae5decd53d"
+      }
+    },
+    {
+      "name": "grilling",
+      "sourcePath": "skills/productivity/grilling",
+      "originalSha256": {
+        "SKILL.md": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15"
+      }
+    },
+    {
+      "name": "grill-me",
+      "sourcePath": "skills/productivity/grill-me",
+      "originalSha256": {
+        "SKILL.md": "caaf8b8de1684f96e26b28f3c29189db5c89cce4b73e1c93d86164f66ef88637"
+      }
+    },
+    {
+      "name": "writing-for-agents",
+      "sourcePath": "skills/productivity/writing-for-agents",
+      "originalSha256": {
+        "SKILL-MECHANICS.md": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059",
+        "SKILL.md": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a"
+      }
+    },
+    {
+      "name": "wait-what",
+      "sourcePath": "skills/productivity/wait-what",
+      "originalSha256": {
+        "SKILL.md": "d961bb37defd975c539427edb8f450cdbccdcdd552e213c1ece46676a7970905"
+      }
+    }
+  ]
+}
