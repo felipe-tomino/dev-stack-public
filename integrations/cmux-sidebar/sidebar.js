@@ -420,15 +420,22 @@ function workspaceMenu(w) {
 }
 
 const rowPreferences = sidebarConfig.preferences;
+const sidebarIconSize = 12;
+
+function sidebarIcon(symbol) {
+  return Image(symbol).font(10)
+    .frame({ width: sidebarIconSize, height: sidebarIconSize }).fixedSize();
+}
+
 const agentStyles = {
-  working: { label: "Working", symbol: "circle.fill", size: 6, color: "blue" },
-  needs_input: { label: "Needs input", symbol: "circle.fill", size: 6, color: "red" },
-  idle: { label: "Idle", symbol: "checkmark.circle", size: 11, color: "green" },
+  working: { label: "Working", symbol: "circle.fill", color: "blue" },
+  needs_input: { label: "Needs input", symbol: "circle.fill", color: "red" },
+  idle: { label: "Idle", symbol: "checkmark.circle", color: "green" },
 };
 
 function agentStyle(agent) {
   return agentStyles[agent.status] ?? {
-    label: agent.status, symbol: "circle.dashed", size: 11, color: "secondary",
+    label: agent.status, symbol: "circle.dashed", color: "secondary",
   };
 }
 
@@ -518,11 +525,9 @@ function workspaceMetadataRows(w) {
     { items: () => workspaceMetadata(w()), key: (row) => row.id },
     (row) => {
       if (row().kind === "agent") {
-        return HStack({ spacing: 5 }, [
-          Image(() => agentStyle(row().agent).symbol)
-            .font(() => agentStyle(row().agent).size)
+        return HStack({ spacing: 4 }, [
+          sidebarIcon(() => agentStyle(row().agent).symbol)
             .color(() => agentStyle(row().agent).color)
-            .frame({ width: 12, height: 12 }).fixedSize()
             .help(() => agentStyle(row().agent).label),
           Text(() => row().agent.name || row().agent.kind).font(11).color("secondary")
             .lineLimit(1).truncation("tail"),
@@ -538,7 +543,7 @@ function workspaceMetadataRows(w) {
       }
       return HStack({ alignment: "top", spacing: 4 }, [
         ForEach({ items: () => row().icon ? [row().icon] : [], key: (icon) => icon },
-          (icon) => Image(() => icon()).font(10).color("secondary").frame({ width: 12 })),
+          (icon) => sidebarIcon(() => icon()).color("secondary")),
         Text(() => row().text).font(12)
           .color(() => row().color || "secondary")
           .monospaced(() => !!row().monospaced)
@@ -569,27 +574,33 @@ function titleIndicators(w, side) {
     },
     key: (indicator) => indicator.id,
   }, (indicator) => {
-    if (indicator().id === "pin") return Image("pin.fill").font(9).color("secondary");
+    if (indicator().id === "pin") return sidebarIcon("pin.fill").color("secondary");
     if (indicator().id === "activity") {
-      return ProgressView().frame({ width: 12, height: 12 }).help("Agent working");
+      return ProgressView().frame({ width: sidebarIconSize, height: sidebarIconSize }).help("Agent working");
     }
-    return Text(() => String(indicator().count)).font(9).weight("semibold").color("white")
-      .frame({ width: 24, height: 24 })
-      .background(rowPreferences.sidebarNotificationBadgeColorHex || "blue").cornerRadius(12);
+    // A separate sized shape avoids text-background/frame ordering in cmux.
+    return ZStack({ alignment: "center" }, [
+      RoundedRectangle().fill(rowPreferences.sidebarNotificationBadgeColorHex || "blue")
+        .cornerRadius(3).frame({ width: sidebarIconSize, height: sidebarIconSize }),
+      Text(() => indicator().count > 99 ? "99+" : String(indicator().count))
+        .font(() => indicator().count > 99 ? 5.5 : 7).weight("semibold").color("white").fixedSize(),
+    ]).frame({ width: sidebarIconSize, height: sidebarIconSize })
+      .help(() => indicator().count + " unread notification" + (indicator().count === 1 ? "" : "s"));
   });
 }
 
 function workspaceTitleRow(w) {
-  return HStack({ alignment: "top", spacing: 6 }, [
-    titleIndicators(w, "leading"),
+  return HStack({ alignment: "top", spacing: 4 }, [
+    // Center 12-point indicators on the title's first line, even when it wraps.
+    titleIndicators(w, "leading").paddingTop(2),
     Text(() => displayTitle(w()).slice(0, 2048))
       .font(13).color("primary")
       .lineLimit(rowPreferences.sidebarWrapWorkspaceTitles ? 8 : 1).truncation("tail")
       .fixedSize("vertical")
       .frame({ maxWidth: "infinity", alignment: "leading" })
       .help(() => displayTitle(w())),
-    titleIndicators(w, "trailing"),
-    Image("xmark").font(9).color("secondary").padding(4)
+    titleIndicators(w, "trailing").paddingTop(2),
+    ZStack({}, [sidebarIcon("xmark").color("secondary")]).padding(4)
       .cornerRadius(9).hoverBackground("#7f7f7f4a").showOnHover()
       .help("Close workspace").onTap(() => closeWorkspace(w().id)),
   ]);
@@ -657,10 +668,8 @@ function groupHeader(groupId) {
     // no folder icon. One glyph that ROTATES (right -> down on expand):
     // rotation animates as one motion with the accordion, and the fixed box
     // keeps the header height constant.
-    Image("chevron.right")
-      .font(10).weight("semibold").color("tertiary")
+    sidebarIcon("chevron.right").weight("semibold").color("tertiary")
       .rotation(() => (isCollapsed(g()) ? 0 : 90))
-      .frame({ width: 14, height: 16 })
       .onTap(() => toggleCollapse(g())),
     Text(() => g().name).font(12).weight("semibold").lineLimit(1).truncation("tail")
       .color(() => (isSelected(anchor()) ? "primary" : "secondary")),
@@ -693,10 +702,8 @@ function groupHeader(groupId) {
 function groupEditRow(groupId) {
   const g = () => groupById(groupId);
   return HStack({ spacing: 6 }, [
-    Image("chevron.right")
-      .font(10).weight("semibold").color("tertiary")
-      .rotation(() => (isCollapsed(g() ?? {}) ? 0 : 90))
-      .frame({ width: 14, height: 16 }),
+    sidebarIcon("chevron.right").weight("semibold").color("tertiary")
+      .rotation(() => (isCollapsed(g() ?? {}) ? 0 : 90)),
     TextField(() => g()?.name ?? "", {
       placeholder: "Group name",
       onSubmit: (t) => {
@@ -776,7 +783,7 @@ function externalDataRow() {
       Text(externalFreshness).font(10)
         .color(() => externalSummary.errorCount || externalFreshness().startsWith("Stale") ? "#C18436" : "tertiary")
         .lineLimit(1),
-      Image("chevron.right").font(8).color("tertiary")
+      sidebarIcon("chevron.right").color("tertiary")
         .rotation(() => externalExpanded() ? 90 : 0)
         .opacity(externalSummary.expandable ? 1 : 0),
     ]),

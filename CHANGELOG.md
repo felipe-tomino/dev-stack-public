@@ -1,5 +1,33 @@
 # Changelog
 
+## Align workspace text and title indicators
+
+- Matched agent-name and title icon-to-text gaps to the other detail rows at 4 points, placing their text on the same guide when a leading badge is present.
+- Lowered title indicators by 2 points to center their unchanged 12×12-point boxes against the first title line rather than the full wrapped title.
+
+Verification: native `SceneNodeView` captures with background-only geometry probes measured identical text origins for agents, previews, branches, and directories. Badged titles shared that guide; badge and first-line box centers matched for wrapped and single-line titles. Empty indicator groups did not shift unbadged titles. Published the active sidebar; cmux validation passed.
+
+## Uniform sidebar icon sizing
+
+- Standardized symbol icons on 12×12-point boxes with one symbol font across workspace details, agent states, pins, close controls, and group/data chevrons.
+- Matched the leading blue unread badge to the same box. Counts above 99 use `99+`, with the complete count on hover; close controls retain an outer padded interaction area.
+
+Verification: rendered 41 real scene symbol nodes through native `SceneNodeView`; each produced a 12×12-point canvas. Native badge captures confirmed the same painted fill size with visible counts at 1, 9, 99, 100, and 9999. Leading placement, live 99/100 boundary changes, full-count tooltips, and removal when read passed. Published the active sidebar; cmux reported one valid and zero invalid.
+
+## Compact leading notification badges
+
+- Replaced the large circle with a blue rounded badge: 6-point horizontal padding, 1-point vertical padding, and a 3-point corner radius. Preserved the white 9-point semibold count and kept its intrinsic size to prevent wrapping.
+- Moved unread notifications back before workspace titles through live and tracked preferences.
+
+Verification: rendered the real JS scene through native `SceneStore`/`SceneNodeView` and SwiftUI `ImageRenderer` for counts 1, 12, and 128. Painted badges were 13 points tall, with more horizontal than vertical space around the text. Leading placement checks and cmux host validation passed; published the active sidebar.
+
+## Fix native unread-badge geometry
+
+- Replaced the text background with an explicitly framed circle behind the count. cmux's JS renderer applies backgrounds before frames, regardless of JS chaining order; the previous fill therefore hugged the digit.
+- Kept the 24-point blue circle, centered white count, trailing placement, and custom color preference. Earlier JS-only checks verified scene properties, not the painted badge bounds.
+
+Verification: generated the real sidebar's scene operations and rendered them through the matching upstream native `SceneStore`/`SceneNodeView` with SwiftUI `ImageRenderer`. Counts 1, 12, and 128 each produced a 48×48-pixel blue circle at 2× scale (24×24 points), with clear corners and inset white text. Republished the active sidebar; cmux reported one valid sidebar and zero invalid.
+
 ## Data-free public sidebar configuration
 
 - Removed the uptime source from the committed example while retaining the independent leading row. Local source configuration and generated sidebar data stay out of Git.
