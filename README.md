@@ -29,6 +29,7 @@ Existing credentials, Claude account/project state, app-managed Codex MCPs/trust
 - `integrations/atuin/config.toml`: quiet history settings; agent hook commands require Atuin on PATH.
 - `integrations/personal-backlog/`: central queue launcher, compact read-only Dock TUI, native cmux summary, login-service template, configuration and dependency declaration. Task data is excluded.
 - `integrations/hermes-cmux/`: local direct-access bridge source. Authentication and UUID-pinned approval files remain local.
+- `integrations/cmux-sidebar/`: Workspaces custom-sidebar template with one independent local-data row and a command/file/SQLite collector. Not installed or enabled by sync.
 
 Skills are linked into `~/.agents/skills`; Claude's native `~/.claude/skills` links point to the same directories. OMP and Pi are configured to use the shared root, and Codex discovers it natively. Runtime-specific invocation/visibility limits are documented in [skill mechanics](skills/writing-for-agents/SKILL-MECHANICS.md). Loading guidance never grants operational permissions.
 
@@ -126,6 +127,70 @@ launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.personal-ba
 ```
 
 The summary is read-only, and task files under `~/.local/share/personal-backlog/backlog/` are not backed up here.
+
+## cmux sidebar with one local-data row
+
+[`integrations/cmux-sidebar/`](integrations/cmux-sidebar/) adds one independent data view above or below the Workspaces custom-sidebar template. It preserves the template's workspace selection, groups, drag/reordering, rename, and context menus. The data view sits outside the reorderable workspace list.
+
+Workspace rows follow the supported appearance settings from your live `com.cmuxterm.app` preferences: wrapped titles, descriptions, leading/trailing unread and activity indicators, badge/selection colors, detail visibility, and branch/directory layout. The producer rereads a whitelist each collection cycle; it does not change cmux settings or embed unrelated preferences. Tracked preferences cap message previews at two lines and disable the title's activity spinner; the leading agent icon still shows working status.
+
+Unread notifications use the [built-in sidebar's circular badge style](https://github.com/manaflow-ai/cmux/blob/9d01f956c51cd895e10e7d56b6dd7b5f6fcce625/Sources/Sidebar/SidebarWorkspaceUnreadBadge.swift), enlarged to a 24-point blue circle for four extra points of room on each side. The white 9-point semibold count is unchanged. Position and custom color still follow cmux preferences.
+
+Rows show leading agent-status icons with full-status tooltips, descriptions capped at two lines, Git branches (`*` means dirty), and directories. Working uses a blue dot, needs-input a red dot, and idle a green circled checkmark. Ended sessions are omitted; idle agents are still open and remain visible. Unknown states stay muted. Paths under the local user's home become `~/…`, with the original path in a tooltip; remote paths and similarly named home directories are not rewritten. The last-path-segment setting still takes precedence. Vertical branch layout includes distinct panel locations without duplicating identical records. Available PRs, ports, remote connection details, progress, and latest messages follow their visibility settings.
+
+Agent status comes from each agent session, not the workspace's task-status lane; workspaces without agents do not show a fabricated status. Metadata stays visible during rename. This is not full built-in-row parity: descriptions/messages are literal text, PR/port rows are display metadata, and arbitrary custom status/log entries, agent usage statistics, and some native indicators are absent from the custom-sidebar context.
+
+If discovered agents remain idle, check hook delivery before changing icon logic. A live process alone does not establish an active turn. With socket control in Password mode, cmux needs a configured socket password; hooks and the CLI read its private `~/.local/state/cmux/socket-control-password` file automatically. Configure it through **Settings → Automation → Socket Password**, keep it out of this repository, and do not disable authentication to work around missing events. Start events lost before authentication was repaired are not replayed; an existing turn may remain idle until its next hook event.
+
+This uses cmux's interpreted custom sidebar mechanism: no compiled extension, preview app, signing, or folder grants. It is a selectable replacement for the built-in sidebar, not an injected view inside the built-in implementation.
+
+### Run and select
+
+Requires Python 3.11+ and cmux Custom Sidebars enabled. The template was taken from cmux 0.65.2. From the repository root:
+
+```sh
+cd integrations/cmux-sidebar
+PYTHON=python3  # Must be Python 3.11 or newer.
+cp -n example-config.json config.local.json
+"$PYTHON" producer.py \
+  --config config.local.json \
+  --output "$HOME/.config/cmux/sidebars/workspaces-local.js" \
+  --watch
+```
+
+On the Mac used for verification, the isolated runtime is `.build/python/cpython-3.13.16-macos-aarch64-none/bin/python3` relative to this integration directory; the system Python is too old. Set `PYTHON` to that executable if using the retained local runtime.
+
+Right-click cmux's sidebar toggle button and choose **workspaces-local**. Switch back to the built-in Workspaces provider in the same menu. With authenticated CLI access, `cmux sidebar select workspaces-local` also selects it. The updater does not need cmux socket access.
+
+The public example has no sources configured: the leading data row remains visible, but contains no external data. Add sources only to ignored `config.local.json`. Add `--position bottom` to put the data view after all workspaces; the default is `top`. This is list placement, not a viewport-pinned footer. `--watch` runs in the foreground; Ctrl-C stops it and active collection subprocesses. Without `--watch`, it writes once. No login service is installed.
+
+### Customize
+
+- **Sources:** edit ignored `config.local.json`. Configuration reloads each collection cycle.
+- **Layout:** edit [`sidebar.js`](integrations/cmux-sidebar/sidebar.js), especially `externalDataRow()`. The producer rereads the template each cycle.
+- **Collection:** edit [`producer.py`](integrations/cmux-sidebar/producer.py).
+
+Do not edit the generated `~/.config/cmux/sidebars/workspaces-local.js`; the next update replaces it. The producer embeds serialized data as a safely escaped JSON string and atomically publishes the complete sidebar. External data is displayed literally, never evaluated as code.
+
+Each configured section has `id`, `title`, and exactly one source:
+
+| Source | Configuration |
+| --- | --- |
+| CLI output | `"command": {"argv": ["tool", "argument"], "cwd": "/optional/directory", "timeoutSeconds": 10}` |
+| Local file | `"file": {"path": "/path/to/file"}` |
+| SQLite query | `"sqlite": {"path": "/path/to/database.sqlite", "query": "SELECT CAST(id AS TEXT) AS id, title FROM tasks", "timeoutSeconds": 5}` |
+
+Command/file sections accept `"format": "text"` (one item per nonblank line) or `"format": "json"` (an array such as `[{"id":"build","title":"Build passed","detail":"Optional detail"}]`). SQLite queries return string `id`, string `title`, and optional string `detail` columns; use `COALESCE` for nullable details. Databases are opened read-only, never created or migrated.
+
+Arguments are literal argv, without shell expansion. Configured paths expand `~`; relative paths resolve against the configuration directory. Bare executables use the producer's `PATH`. Only use trusted configurations: commands run with your account's permissions.
+
+Source errors appear first in the same data view; healthy output remains available. It previews three entries and expands on click when there are more, with explicit output bounds. Hover over a clipped entry to read its bounded text. The Fresh/Stale label uses cmux's clock, so it becomes stale even after the producer stops. Invalid configuration or oversized aggregate data preserves the previous sidebar and reports an error on stderr.
+
+**Refresh tradeoff:** each publication hot-reloads the entire custom sidebar. This can reset template-local UI state, including an in-progress rename or drag. Use a moderate `intervalSeconds` (the example uses 30) rather than updating every second.
+
+Generated sidebar files are mode `0600`; newly created parent directories are `0700`. Existing directory permissions are unchanged. Source outputs can contain sensitive information; keep local configuration and generated files out of version control. Collection is bounded to 1 MiB per source/combined data snapshot, 32 sources, and 200 items per source; the generated JS is larger because it also includes the template and JSON escaping.
+
+Run regressions with Python 3.11+: `python3 -B -m unittest discover -s tests -p test_cmux_sidebar_producer.py -v`. With socket access, `cmux sidebar validate workspaces-local` validates through the host. Attribution and the copied template's GPL license are recorded in [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Hermes and OpenCode snapshots
 

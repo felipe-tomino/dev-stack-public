@@ -1,5 +1,99 @@
 # Changelog
 
+## Data-free public sidebar configuration
+
+- Removed the uptime source from the committed example while retaining the independent leading row. Local source configuration and generated sidebar data stay out of Git.
+- Allowed zero configured sources so an empty configuration replaces previously collected data rather than preserving an old snapshot.
+
+Verification: 23 producer regressions passed, including clearing previously published source data. The actual producer and installed cmux JavaScript runtime rendered the empty leading row ahead of a workspace with no collected sections.
+
+## Roomier unread badge
+
+- Enlarged the notification circle from 16 to 24 points, adding four points of room on each side without changing count typography, color, or position.
+
+Verification: the installed cmux JavaScript runtime checked the 24-point circle, 12-point corner radius, unchanged count styling, and removal when read. Published the generated sidebar.
+
+## Native-style blue unread badge
+
+- Replaced the red unread pill with a 16-point circular badge and white 9-point semibold count, matching the native sidebar's base geometry.
+- Restored blue as the custom sidebar's default badge color and cleared the old red override in live and tracked preferences. Notifications remain trailing; agent-state colors are unchanged.
+
+Verification: the installed cmux JavaScript runtime checked blue fill, count typography, circular geometry, trailing placement, count updates from 7 to 12, and removal when read. Needs-input agent icons remained red. Published the generated sidebar.
+
+## Two-line workspace previews
+
+- Capped message previews at two lines through live and tracked preferences, matching the existing description limit. Full text remains available on hover.
+
+Verification: the installed cmux JavaScript runtime exercised multiline descriptions and messages in the published sidebar; both used two-line limits with trailing truncation and retained full hover text.
+
+## Live agent rows without the title spinner
+
+- Omitted ended sessions from workspace metadata instead of displaying historical records beside live agents. Idle-but-open sessions and separate live agents remain visible; session history is not deleted.
+- Disabled the workspace title's activity spinner in live and tracked preferences. Working state remains visible through the blue leading agent icon.
+
+Verification: the installed cmux JavaScript runtime rendered one working session alongside two ended records as one visible agent, retained it when idle, preserved a second terminal's agent, and removed rows on session end without changing the input history. No title spinner was rendered. Published the generated sidebar.
+
+## Attention-coded agent states
+
+- Colored working blue, needs-input red, and idle/ended green. Distinct settled-state icons, muted unknown state, leading placement, and text tooltips remain unchanged.
+
+Verification: the installed cmux JavaScript runtime exercised live transitions through every state and checked colors, distinct icons, hover descriptions, and stable slot dimensions. Published the generated sidebar.
+
+## Trailing unread-notification badge
+
+- Moved the red unread count to the right of the workspace title through the native badge-position preference. Saved the same position in the tracked preferences; activity and agent-status icons remain leading.
+
+Verification: the installed cmux JavaScript runtime confirmed activity/title/unread-count ordering, unchanged leading agent icons, and removal of the count when unread clears. Republished the active custom sidebar.
+
+## Restore authenticated agent hook delivery
+
+- Found Password socket mode enabled without a configured credential. Added a random credential to cmux's standard private store with mode `0600`; authentication mode, hook files, and sidebar state mapping are unchanged.
+- Documented that process-discovered agents start idle and require hook events for activity. Lost start events are not replaced with guesses based on process presence.
+
+Verification: authenticated workspace access succeeded. Native OMP enqueue hooks in an isolated workspace reported prompt-submit → running and stop → idle, with matching native sidebar status entries and no hook errors. Closed the test workspace and removed its two test hook records; the original five workspaces remained. Password mode and credential permissions were checked afterward. No credential value was logged or added to Git.
+
+## Distinct idle and ended icons
+
+- Kept the circled checkmark for idle and changed ended to a stop-circle, retaining the muted color, leading placement, and full-status tooltip.
+
+Verification: AppKit resolved the stop-circle; the installed cmux JavaScript runtime exercised idle → ended → idle with distinct symbols, unchanged slot dimensions, and correct tooltips. Published the generated sidebar.
+
+## Compact agent-status icons
+
+- Replaced status text pills with fixed-size leading icons: gray working dot, amber needs-input dot, and settled-state checkmark, using cmux's default symbol shapes. Agent names and full-status hover descriptions remain.
+
+Verification: AppKit resolved every chosen symbol; the installed cmux JavaScript runtime exercised working, needs-input, idle, ended, and unknown transitions, icon order/dimensions, tooltips, and removal of text pills. Published the generated sidebar.
+
+## Leading agent-status badges
+
+- Moved each status badge before the agent name, preserving the existing styling and left-aligned row.
+
+Verification: the installed cmux JavaScript runtime confirmed badge/name/spacer order and live status updates. Published the generated sidebar.
+
+## Match live cmux workspace-row preferences
+
+- Matched the custom rows to supported live sidebar settings rather than the older tracked snapshot: wrapped titles, short descriptions, left selection rail, leading unread/activity indicators, colors, detail visibility, and stacked branch/directory layout.
+- Replaced the joined agent-status sentence with individual tinted badges. Added home-relative paths with full-path tooltips, distinct panel locations, and available PR/port/message/progress/remote details.
+- Read only an allowlist of appearance preferences into the generated sidebar; native settings and the independent external-data row are unchanged. Restarted the updater with the new generated-file format.
+
+Verification: 22 producer regressions passed. The installed cmux JavaScript runtime exercised badge styles, title wrapping, descriptions, indicator placement, home/remote path boundaries, distinct panel metadata, auxiliary details, live transitions, visibility toggles, rename, and click dispatch using isolated workspace fixtures and the real preference snapshot. The generated file was published and the updater resumed. Current-window visual comparison remains unverified.
+
+## Restore workspace metadata in the custom sidebar
+
+- Added live agent names/statuses, directories, and Git branches beneath workspace titles. Dirty working trees have a `*`; agents needing input have an amber status line. Empty metadata is omitted.
+- Kept metadata visible during inline rename and retained workspace selection, existing controls, and the independent external-data row. Published the updated generated sidebar without changing the selected provider.
+
+Verification: the installed cmux JavaScript runtime rendered metadata, reacted to status/path/branch changes, removed stale values when fields disappeared, preserved metadata during rename, and emitted workspace-select actions. Checks used isolated workspace fixtures; current-window visuals were not captured. The live generated file was updated successfully.
+
+## One external-data row in the cmux sidebar
+
+- Replaced the compiled extension and preview app with cmux's interpreted Workspaces template plus one independent local-data view, outside the workspace reorderable list. It can appear before or after all workspaces.
+- Kept the Python collector for literal-argv commands, text/JSON files, and read-only SQLite. It now atomically publishes one generated sidebar file with safely escaped data. Removed native build/signing, folder bookmarks, the snapshot reader, and its obsolete tests.
+- Preserved workspace template interactions and added bounded output, source-error visibility, and clock-driven stale state. Recorded the upstream template's GPL license and the whole-sidebar hot-reload tradeoff.
+- Installed `workspaces-local`, selected its saved cmux provider preference, and started the local updater. No login service, authentication change, or sync change was made.
+
+Verification: 22 collector regressions passed. The installed cmux JavaScript runtime exercised top/bottom root ordering, literal command/file/SQLite data, source errors, expansion, stale transitions, and workspace-select action emission with isolated workspace fixtures. The installed native render worker created a surface and acknowledged scene updates. Live updater output and the selected preference were read back. Current-window visuals and live workspace actions were not verified: socket authentication is unavailable, and the remote-layer capture returned blank. The native extension registration and containing app were removed.
+
 ## Public snapshot
 
 - Started a new repository without the prior Git history, private marketplace references, personal branch prefix or machine-specific cmux destinations.
