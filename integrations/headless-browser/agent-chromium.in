@@ -1,0 +1,42 @@
+#!/bin/sh
+# @HOME_SHELL@ is a shell-quoted absolute home path, rendered by sync.py.
+runtime=@HOME_SHELL@/.local/share/dev-stack/headless-browser
+cache=$runtime/browsers
+marker=$runtime/executable.txt
+
+fail() {
+    printf '%s\n' "agent-chromium: $1" 'Provision the dedicated browser with: python3 sync.py --only-browser' >&2
+    exit 127
+}
+
+[ ! -L "$runtime" ] && [ -d "$runtime" ] || fail 'Dedicated browser runtime is missing or symlinked.'
+[ ! -L "$cache" ] && [ -d "$cache" ] || fail 'Dedicated browser cache is missing or symlinked.'
+[ ! -L "$marker" ] && [ -f "$marker" ] && [ -r "$marker" ] || fail 'Dedicated browser executable marker is missing, unreadable, or symlinked.'
+[ ! -L "$runtime/profile" ] && { [ ! -e "$runtime/profile" ] || [ -d "$runtime/profile" ]; } || fail 'Dedicated browser profile is symlinked or not a directory.'
+
+executable=
+extra=
+{
+    IFS= read -r executable || fail 'Invalid dedicated browser executable marker.'
+    if IFS= read -r extra || [ -n "$extra" ]; then
+        fail 'Dedicated browser executable marker must contain exactly one line.'
+    fi
+} < "$marker"
+
+case "$executable" in
+    "$cache"/*) ;;
+    *) fail 'Browser executable is outside the dedicated cache.' ;;
+esac
+case "$executable" in
+    */../*|*/./*|*/..|*/.) fail 'Invalid dedicated browser executable path.' ;;
+esac
+# Reject an ancestor symlink that redirects an otherwise cache-prefixed path.
+directory=${executable%/*}
+physical=$(CDPATH= cd -P "$directory" && pwd -P) || fail 'Cannot resolve browser executable directory.'
+case "$physical" in
+    "$cache"|"$cache"/*) ;;
+    *) fail 'Browser executable directory is outside the dedicated cache.' ;;
+esac
+[ ! -L "$executable" ] && [ -f "$executable" ] && [ -x "$executable" ] || fail 'Dedicated browser executable is missing, symlinked, or not executable.'
+# Keep headful-default consumers and direct calls away from personal profiles.
+exec "$executable" --headless --user-data-dir="$runtime/profile" "$@"

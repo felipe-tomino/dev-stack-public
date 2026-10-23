@@ -1,5 +1,13 @@
 # Changelog
 
+## Provision dedicated headless Chromium
+
+- Add `sync.py --only-browser` to install private browser-management dependencies and an unbranded Chromium snapshot through the public Puppeteer browser installer. Normal sync remains configuration-only; dry run performs no installs.
+- Configure Puppeteer and Playwright CLI/MCP through a managed shell environment file and one preserved `.zshenv` block. Migrate only the exact previous local Chrome-for-Testing exports and matching inherited paths; retain other explicit overrides.
+- Enforce headless mode in the dedicated launcher, isolate its default profile, reject foreign executable/cache/profile symlinks, and publish the executable marker only after successful provisioning. Never fall back to personal Chrome.
+
+Verification: all 38 sync safety tests passed. Actual scoped setup succeeded in a quoted, Unicode-containing isolated home and on this Mac; repeated setup reused Chromium revision 1726148 (158.0.8121.0). Real Playwright launches with `headless: false` remained headless through the launcher, used isolated caller profiles verified through Chromium's version page, and completed a DOM interaction. A deliberately foreign cache symlink caused the real installer to fail without changing its working executable marker. Personal Chrome, default-browser settings and running agents were not modified or restarted. Updated setup documentation; browser binaries and caches remain local.
+
 ## Restore backlog card hover highlighting
 
 - Replace the transparent `$boost` hover background with `$panel-lighten-1` (`#303348`), so hovering brightens both selected and unselected cards.

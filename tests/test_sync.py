@@ -41,6 +41,150 @@ class SyncSafetyTests(unittest.TestCase):
                               text=True, capture_output=True, cwd=self.root,
                               env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
 
+    def test_browser_dry_run_does_not_install_or_change_selected_home(self):
+        startup = self.home / ".zshenv"
+        startup.write_text("export PRIVATE_SETTING=keep\n")
+        result = self.run_sync("--only-browser", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(startup.read_text(), "export PRIVATE_SETTING=keep\n")
+        self.assertFalse((self.home / ".local").exists())
+        self.assertFalse((self.home / ".config").exists())
+        self.assertFalse((self.home / ".omp").exists())
+
+    def test_browser_exports_quote_home_preserve_overrides_and_repeat_cleanly(self):
+        self.home = self.root / "home with 'quotes' & unicode ☕"
+        self.home.mkdir()
+        startup = self.home / ".zshenv"
+        original = "export PRIVATE_SETTING='keep my setting'\n"
+        startup.write_text(original)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(startup.read_text().startswith(original))
+        environment = dict(os.environ, HOME=str(self.home))
+        for key in ("PUPPETEER_EXECUTABLE_PATH", "PLAYWRIGHT_MCP_EXECUTABLE_PATH"):
+            environment.pop(key, None)
+        command = ["/bin/sh", "-c",
+                   '. "$1"; printf "%s\\n" "$PUPPETEER_EXECUTABLE_PATH" "$PLAYWRIGHT_MCP_EXECUTABLE_PATH" "$PRIVATE_SETTING"',
+                   "browser-test", str(startup)]
+        exported = subprocess.run(command, env=environment, capture_output=True, text=True)
+        launcher = str(self.home / ".local/bin/agent-chromium")
+        self.assertEqual(exported.returncode, 0, exported.stderr)
+        self.assertEqual(exported.stdout.splitlines(), [launcher, launcher, "keep my setting"])
+        environment["PUPPETEER_EXECUTABLE_PATH"] = "/custom/puppeteer-browser"
+        environment["PLAYWRIGHT_MCP_EXECUTABLE_PATH"] = "/custom/playwright-browser"
+        overridden = subprocess.run(command, env=environment, capture_output=True, text=True)
+        self.assertEqual(overridden.returncode, 0, overridden.stderr)
+        self.assertEqual(overridden.stdout.splitlines(), [
+            "/custom/puppeteer-browser", "/custom/playwright-browser", "keep my setting"])
+        before = startup.stat().st_mtime_ns
+        repeated = self.run_sync()
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertEqual(startup.stat().st_mtime_ns, before)
+        self.assertFalse((self.home / ".local/share/dev-stack/headless-browser/node_modules").exists())
+
+    def test_browser_setup_migrates_known_legacy_chrome_exports_and_inherited_values(self):
+        startup = self.home / ".zshenv"
+        legacy = self.home / "Library/Application Support/AgentBrowsers/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+        original = (
+            "export PRIVATE_SETTING=keep\n"
+            "# Dedicated browser for agent automation; keeps headless sessions separate from personal Chrome.\n"
+            f"export PUPPETEER_EXECUTABLE_PATH={shlex.quote(str(legacy))}\n"
+            f"export PLAYWRIGHT_MCP_EXECUTABLE_PATH={shlex.quote(str(legacy))}\n"
+            "export OTHER_SETTING=untouched\n")
+        startup.write_text(original)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        inherited = dict(os.environ, PUPPETEER_EXECUTABLE_PATH=str(legacy),
+                         PLAYWRIGHT_MCP_EXECUTABLE_PATH=str(legacy))
+        exported = subprocess.run(
+            ["/bin/sh", "-c", '. "$1"; printf "%s\\n" "$PUPPETEER_EXECUTABLE_PATH" "$PLAYWRIGHT_MCP_EXECUTABLE_PATH" "$PRIVATE_SETTING" "$OTHER_SETTING"',
+             "browser-test", str(startup)], env=inherited, text=True, capture_output=True)
+        self.assertEqual(exported.returncode, 0, exported.stderr)
+        launcher = str(self.home / ".local/bin/agent-chromium")
+        self.assertEqual(exported.stdout.splitlines(), [launcher, launcher, "keep", "untouched"])
+        self.assertNotIn(str(legacy), startup.read_text())
+        backups = list((self.home / ".local/state/dev-stack/backups").rglob(".zshenv"))
+        self.assertEqual([path.read_text() for path in backups], [original])
+
+    def test_browser_setup_refuses_foreign_marker_or_cache_before_writes(self):
+        outside = self.root / "outside"
+        outside.mkdir()
+        private = outside / "private.txt"
+        private.write_text("leave private browser data alone")
+        runtime = self.home / ".local/share/dev-stack/headless-browser"
+        runtime.mkdir(parents=True)
+        for name, target in (("executable.txt", private), ("browsers", outside),
+                             ("node_modules", outside), ("npm-cache", outside), ("profile", outside)):
+            with self.subTest(name=name):
+                link = runtime / name
+                link.symlink_to(target)
+                result = self.run_sync("--only-browser", "--dry-run")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertTrue(link.is_symlink())
+                self.assertEqual(private.read_text(), "leave private browser data alone")
+                self.assertFalse((self.home / ".zshenv").exists())
+                self.assertFalse((self.home / ".config").exists())
+                link.unlink()
+
+    def test_browser_setup_refuses_unterminated_startup_block(self):
+        startup = self.home / ".zshenv"
+        original = "export PRIVATE_SETTING=keep\n# >>> dev-stack headless browser >>>\n"
+        startup.write_text(original)
+        result = self.run_sync("--only-browser", "--dry-run")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(startup.read_text(), original)
+        self.assertFalse((self.home / ".local").exists())
+
+    def test_browser_launcher_without_runtime_never_downloads_or_falls_back(self):
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        runtime = self.home / ".local/share/dev-stack/headless-browser"
+        launcher = self.home / ".local/bin/agent-chromium"
+        launched = subprocess.run([str(launcher), "--version"], text=True, capture_output=True)
+        self.assertNotEqual(launched.returncode, 0, launched.stdout + launched.stderr)
+        self.assertIn("sync.py --only-browser", launched.stderr)
+        self.assertFalse((runtime / "node_modules").exists())
+        self.assertFalse((runtime / "browsers").exists())
+        self.assertFalse((runtime / "executable.txt").exists())
+
+    def test_browser_launcher_refuses_cache_path_redirected_to_foreign_browser(self):
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        runtime = self.home / ".local/share/dev-stack/headless-browser"
+        cache = runtime / "browsers"
+        cache.mkdir()
+        foreign = self.root / "personal-browser"
+        foreign.mkdir()
+        evidence = self.root / "personal-browser-was-launched"
+        executable = foreign / "browser"
+        executable.write_text(f"#!/bin/sh\n: > {shlex.quote(str(evidence))}\n")
+        executable.chmod(0o700)
+        (cache / "redirect").symlink_to(foreign, target_is_directory=True)
+        (runtime / "executable.txt").write_text(str(cache / "redirect/browser") + "\n")
+        launched = subprocess.run([str(self.home / ".local/bin/agent-chromium"), "--version"],
+                                  text=True, capture_output=True)
+        self.assertNotEqual(launched.returncode, 0, launched.stdout + launched.stderr)
+        self.assertFalse(evidence.exists(), "Launcher followed a cache symlink to a personal browser")
+
+    def test_browser_launcher_refuses_symlinked_personal_profile(self):
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        runtime = self.home / ".local/share/dev-stack/headless-browser"
+        cache = runtime / "browsers"
+        cache.mkdir()
+        personal = self.root / "personal-profile"
+        personal.mkdir()
+        evidence = personal / "browser-wrote-state"
+        executable = cache / "fixture-browser"
+        executable.write_text(f"#!/bin/sh\n: > {shlex.quote(str(evidence))}\n")
+        executable.chmod(0o700)
+        (runtime / "executable.txt").write_text(str(executable) + "\n")
+        (runtime / "profile").symlink_to(personal, target_is_directory=True)
+        launched = subprocess.run([str(self.home / ".local/bin/agent-chromium"), "--version"],
+                                  text=True, capture_output=True)
+        self.assertNotEqual(launched.returncode, 0, launched.stdout + launched.stderr)
+        self.assertFalse(evidence.exists(), "Launcher allowed Chromium to write through a personal-profile symlink")
+
     def test_hermes_launcher_keeps_original_private_and_survives_repeat_sync(self):
         launcher = self.home / ".local/bin/hermes"
         launcher.parent.mkdir(parents=True)

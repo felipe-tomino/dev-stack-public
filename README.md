@@ -19,6 +19,25 @@ Full sync generates `~/.config/cmux/sidebars/workspaces-local.js`. On the real m
 
 Existing credentials, Claude account/project state, app-managed Codex MCPs/trust/notifications, and local permission settings remain local. Matching-endpoint MCP credentials are preserved; changed endpoints do not inherit them. Sync owns the names in the shared MCP catalog and removes unselected entries with those names from user-level MCP configuration. It leaves unrelated MCPs, skills and workspace files alone. A small local ownership record allows retirement of previously synced skill links and MCP names. Foreign destination symlinks or non-directory ancestors are refused before writes. File replacement is atomic per file, not an all-files transaction; native command failure is reported rather than silently ignored.
 
+## Dedicated headless Chromium
+
+Full sync installs browser configuration without downloading a browser. Provision unbranded Chromium separately from personal Google Chrome:
+
+```sh
+python3 sync.py --only-browser --dry-run
+python3 sync.py --only-browser
+. "$HOME/.config/dev-stack/browser.env"
+"$PUPPETEER_EXECUTABLE_PATH" --version
+```
+
+Setup requires Node.js 22.12+ and npm in addition to Python 3.11+. It installs locked browser-management dependencies privately under `~/.local/share/dev-stack/headless-browser/` and downloads the latest official Chromium snapshot for the current platform through the [Puppeteer browser installer](https://pptr.dev/browsers-api/browsers.install). Chromium snapshots are development builds, not stable Chrome releases. Repeating setup reuses an already-cached revision; a newer upstream revision is downloaded only when setup is explicitly run again.
+
+`~/.local/bin/agent-chromium` launches the dedicated executable with headless mode enforced and a private default profile. Puppeteer/Playwright can still supply their own isolated profile. The launcher never downloads dependencies or falls back to personal Chrome. If provisioning has not run, it fails with setup instructions. Setup does not change the default browser, personal Chrome installation, or personal browser profiles.
+
+`~/.config/dev-stack/browser.env` configures `PUPPETEER_EXECUTABLE_PATH` and `PLAYWRIGHT_MCP_EXECUTABLE_PATH`. Setup migrates the exact previous local Chrome-for-Testing export block and its matching inherited executable path; other nonempty overrides win. Full sync and `--only-browser` maintain one marked source block in `~/.zshenv`, preserving other startup content and privately backing up replacements. New zsh shells inherit the paths automatically. For another POSIX shell, source the environment file before launching an agent. Existing agent processes need a normal restart to inherit the new environment; sync does not restart them.
+
+For direct Playwright scripts, pass `process.env.PUPPETEER_EXECUTABLE_PATH` as `executablePath`; Playwright's library does not consume the MCP-specific environment variable automatically. `--only-browser` also supports `--home /path/to/isolated/home` and leaves all other agent and cmux settings untouched. Dry run writes nothing and executes no provisioning commands.
+
 ## CLI-only cmux access
 
 Hermes and OMP run inside cmux with `automation.socketControlMode = cmuxOnly`. cmux authorizes its descendant processes or clients with a valid inherited capability; no shared password is required for these CLI sessions. The tracked configuration preserves this policy on future syncs.

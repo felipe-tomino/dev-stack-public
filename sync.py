@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync repository configuration to this Mac; no tool installs or version locks."""
+"""Sync repository configuration; explicitly provision a dedicated automation browser."""
 import argparse
 import datetime
 import hashlib
@@ -53,7 +53,7 @@ FILES = {
     "integrations/hermes-cmux/cmux.py": ".hermes/cmux-bridge/cmux",
 }
 EXECUTABLE_TARGETS = {
-    ".local/bin/work-queue", ".local/bin/hermes",
+    ".local/bin/work-queue", ".local/bin/hermes", ".local/bin/agent-chromium",
     ".hermes/cmux-bridge/hermes-original", ".hermes/cmux-bridge/cmux",
 }
 CONTEXTS = {
@@ -289,6 +289,60 @@ def hermes_adapter_plan(home):
     return {original: current, launcher: wrapper}
 
 
+def browser_plan(home):
+    runtime = home / ".local/share/dev-stack/headless-browser"
+    startup = home / ".zshenv"
+    check_destination(startup, home)
+    check_destination(runtime / "executable.txt", home)
+    for directory in ("browsers", "node_modules", "npm-cache", "profile"):
+        check_destination(runtime / directory / ".dev-stack-check", home)
+    current = startup.read_text() if startup.exists() else ""
+    legacy_browser = shlex.quote(str(home / "Library/Application Support/AgentBrowsers/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"))
+    legacy_block = (
+        "# Dedicated browser for agent automation; keeps headless sessions separate from personal Chrome.\n"
+        f"export PUPPETEER_EXECUTABLE_PATH={legacy_browser}\n"
+        f"export PLAYWRIGHT_MCP_EXECUTABLE_PATH={legacy_browser}\n")
+    current = current.replace(legacy_block, "")
+    begin = "# >>> dev-stack headless browser >>>"
+    end = "# <<< dev-stack headless browser <<<"
+    block = f"{begin}\n. {shlex.quote(str(home / '.config/dev-stack/browser.env'))}\n{end}\n"
+    lines = current.splitlines(keepends=True)
+    starts = [i for i, line in enumerate(lines) if line.rstrip("\r\n") == begin]
+    ends = [i for i, line in enumerate(lines) if line.rstrip("\r\n") == end]
+    if starts or ends:
+        if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
+            raise ValueError(f"Malformed managed browser block: {startup}")
+        content = "".join(lines[:starts[0]]) + block + "".join(lines[ends[0] + 1:])
+    else:
+        content = current + ("\n" if current and not current.endswith("\n") else "") + block
+    plan = {
+        startup: content.encode(),
+        home / ".config/dev-stack/browser.env": source_bytes("integrations/headless-browser/browser.env.in", home),
+        home / ".local/bin/agent-chromium": source_bytes("integrations/headless-browser/agent-chromium.in", home),
+    }
+    for name in ("package.json", "package-lock.json", "install.mjs"):
+        plan[runtime / name] = source_bytes(f"integrations/headless-browser/{name}", home)
+    return plan
+
+
+def provision_browser(home, dry_run):
+    runtime = home / ".local/share/dev-stack/headless-browser"
+    commands = [
+        ["npm", "ci", "--prefix", str(runtime), "--cache", str(runtime / "npm-cache"),
+         "--engine-strict", "--ignore-scripts", "--no-audit", "--no-fund"],
+        ["node", str(runtime / "install.mjs")],
+    ]
+    environment = {key: os.environ[key] for key in (
+        "PATH", "TMPDIR", "LANG", "LC_ALL", "NODE_EXTRA_CA_CERTS",
+        "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy",
+    ) if key in os.environ}
+    environment["HOME"] = str(home)
+    for command in commands:
+        print(f"{'Would run' if dry_run else 'Running'} {shlex.join(command)}", flush=True)
+        if not dry_run:
+            subprocess.run(command, env=environment, check=True)
+
+
 def build_plan(home):
     state_path = home / ".local/state/dev-stack/managed.json"
     previous = load_json(state_path)
@@ -335,6 +389,7 @@ def build_plan(home):
     plan[path] = json_bytes(current)
     links = {home / target: source_bytes(source, home) for target, source in CONTEXTS.items()}
     plan.update(backlog_plan(home))
+    plan.update(browser_plan(home))
     for source in sorted((ROOT / "skills").iterdir()):
         links[home / ".agents/skills" / source.name] = source
         if source.is_dir() and (source / "SKILL.md").is_file():
@@ -358,10 +413,14 @@ def check_destination(path, home, link=None):
         raise ValueError(f"Expected destination file: {path}")
 
 
-def sync(home, dry_run, only_backlog=False, only_hermes=False):
+def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=False):
     state_path = home / ".local/state/dev-stack/managed.json"
     previous = load_json(state_path)
-    if only_hermes:
+    if only_browser:
+        if not dry_run and (not shutil.which("node") or not shutil.which("npm")):
+            raise ValueError("Browser setup requires Node.js 22.12+ and npm on PATH")
+        plan, retired = browser_plan(home), {}
+    elif only_hermes:
         plan = {home / FILES[source]: source_bytes(source, home) for source in (
             "integrations/hermes-cmux/hook_adapter.py", "integrations/hermes-cmux/startup_session.py",
             "integrations/hermes-cmux/cmux.py")}
@@ -376,7 +435,7 @@ def sync(home, dry_run, only_backlog=False, only_hermes=False):
         plan[state_path] = json_bytes(state)
     else:
         plan, retired = build_plan(home)
-    scoped = only_backlog or only_hermes
+    scoped = only_backlog or only_hermes or only_browser
     native = not scoped and sys.platform == "darwin" and home == Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
     preferences = load_json(ROOT / "cmux/preferences.json") if not scoped else {}
     for name, value in preferences.items():
@@ -451,6 +510,8 @@ def sync(home, dry_run, only_backlog=False, only_hermes=False):
                 if os.path.exists(temporary):
                     os.unlink(temporary)
     print(f"{'Planned' if dry_run else 'Synced'} {len(changes)} changes; backups: {backup}")
+    if only_browser:
+        provision_browser(home, dry_run)
     if native:
         print(f"{'Would apply' if dry_run else 'Applying'} cmux preferences, native OMP/Codex hooks and workspaces-local sidebar")
         if dry_run:
@@ -485,9 +546,10 @@ def main():
     scoped = parser.add_mutually_exclusive_group()
     scoped.add_argument("--only-backlog", action="store_true", help="Restore queue configuration and skill links only; no agent settings, native preferences, hooks or service activation")
     scoped.add_argument("--only-hermes", action="store_true", help="Install the Hermes lifecycle adapter and preserve its original launcher; no profile, consent, auth or native preference changes")
+    scoped.add_argument("--only-browser", action="store_true", help="Configure a dedicated headless Chromium shell and explicitly download its runtime; no other agent or cmux changes")
     args = parser.parse_args()
     try:
-        sync(args.home.expanduser().resolve(), args.dry_run, args.only_backlog, args.only_hermes)
+        sync(args.home.expanduser().resolve(), args.dry_run, args.only_backlog, args.only_hermes, args.only_browser)
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
         print(f"Sync failed: {error}", file=sys.stderr)
         return 1
