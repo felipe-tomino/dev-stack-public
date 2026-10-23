@@ -309,7 +309,7 @@ def build_snapshot(config, base):
     return raw, failed
 
 
-def sidebar_config():
+def sidebar_config(saved=None, home=None):
     defaults = {
         "sidebarHideAllDetails": False,
         "sidebarWrapWorkspaceTitles": False,
@@ -333,8 +333,9 @@ def sidebar_config():
         "sidebarActiveTabIndicatorStyle": "leftRail",
         "sidebarSelectionColorHex": "",
     }
-    saved = {}
-    if sys.platform == "darwin":
+    read_native = saved is None and home is None and sys.platform == "darwin"
+    saved = {} if saved is None else saved
+    if read_native:
         try:
             result = subprocess.run(
                 ["/usr/bin/defaults", "export", "com.cmuxterm.app", "-"],
@@ -348,15 +349,19 @@ def sidebar_config():
                    for key, value in defaults.items()}
     preferences["sidebarNotificationMessageLineLimit"] = max(
         1, min(50, preferences["sidebarNotificationMessageLineLimit"]))
-    return {"homeDirectory": str(Path.home()), "preferences": preferences}
+    return {"homeDirectory": str(Path.home() if home is None else home), "preferences": preferences}
+
+
+def render_sidebar(raw, position, config):
+    template = Path(__file__).with_name("sidebar.js").read_text(encoding="utf-8")
+    return (f"const externalSnapshot = JSON.parse({json.dumps(raw.decode('utf-8'), ensure_ascii=True)});\n"
+            f"const externalPosition = {json.dumps(position)};\n"
+            f"const sidebarConfig = JSON.parse({json.dumps(json.dumps(config), ensure_ascii=True)});\n"
+            + template).encode("utf-8")
 
 
 def publish(output, raw, position):
-    template = Path(__file__).with_name("sidebar.js").read_text(encoding="utf-8")
-    script = (f"const externalSnapshot = JSON.parse({json.dumps(raw.decode('utf-8'), ensure_ascii=True)});\n"
-              f"const externalPosition = {json.dumps(position)};\n"
-              f"const sidebarConfig = JSON.parse({json.dumps(json.dumps(sidebar_config()), ensure_ascii=True)});\n"
-              + template).encode("utf-8")
+    script = render_sidebar(raw, position, sidebar_config())
     output = Path(output).expanduser()
     directory = output.parent
     try:

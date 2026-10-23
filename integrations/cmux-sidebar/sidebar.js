@@ -430,10 +430,15 @@ function sidebarIcon(symbol) {
 const agentStyles = {
   working: { label: "Working", symbol: "circle.fill", color: "blue" },
   needs_input: { label: "Needs input", symbol: "circle.fill", color: "red" },
-  idle: { label: "Idle", symbol: "checkmark.circle", color: "green" },
+  finished: { label: "Finished", symbol: "checkmark.circle.fill", color: "green", finished: true },
+  idle: { label: "Idle", symbol: "circle", color: "secondary" },
 };
 
-function agentStyle(agent) {
+function agentStyle(agent, workspace) {
+  // cmux reports completed turns as idle; only their unread surface needs attention.
+  if (agent.status === "idle" && workspace?.tabs?.some(
+    (tab) => tab.id === agent.panelId && tab.hasUnread
+  )) return agentStyles.finished;
   return agentStyles[agent.status] ?? {
     label: agent.status, symbol: "circle.dashed", color: "secondary",
   };
@@ -469,7 +474,9 @@ function workspaceMetadata(workspace) {
   }
   if (rowPreferences.sidebarShowStatusPills) {
     for (const agent of workspace.agents ?? []) {
-      if (agent.status === "ended") continue;
+      // Restored history can be idle without a process; it is not an open agent.
+      if (agent.status === "ended" || !Number.isInteger(agent.pid) || agent.pid <= 0) continue;
+      if (!workspace.tabs?.some((tab) => tab.id === agent.panelId)) continue;
       rows.push({ id: "agent:" + agent.id, kind: "agent", agent });
     }
   }
@@ -526,13 +533,18 @@ function workspaceMetadataRows(w) {
     (row) => {
       if (row().kind === "agent") {
         return HStack({ spacing: 4 }, [
-          sidebarIcon(() => agentStyle(row().agent).symbol)
-            .color(() => agentStyle(row().agent).color)
-            .help(() => agentStyle(row().agent).label),
-          Text(() => row().agent.name || row().agent.kind).font(11).color("secondary")
+          sidebarIcon(() => agentStyle(row().agent, w()).symbol)
+            .color(() => agentStyle(row().agent, w()).color)
+            .help(() => agentStyle(row().agent, w()).label),
+          Text(() => {
+            const style = agentStyle(row().agent, w());
+            return (row().agent.name || row().agent.kind) + (style.finished ? " · Finished" : "");
+          }).font(11)
+            .color(() => agentStyle(row().agent, w()).finished ? "green" : "secondary")
+            .weight(() => agentStyle(row().agent, w()).finished ? "semibold" : "regular")
             .lineLimit(1).truncation("tail"),
           Spacer({ minLength: 0 }),
-        ]).help(() => (row().agent.name || row().agent.kind) + ": " + agentStyle(row().agent).label);
+        ]).help(() => (row().agent.name || row().agent.kind) + ": " + agentStyle(row().agent, w()).label);
       }
       if (row().kind === "progress") {
         return VStack({ alignment: "leading", spacing: 2 }, [

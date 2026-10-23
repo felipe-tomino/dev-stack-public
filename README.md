@@ -15,9 +15,63 @@ python3 sync.py
 
 The repo is authoritative for tracked configuration. Sync backs up replaced files/directories privately under `~/.local/state/dev-stack/backups/`, links shared skills, restores native per-agent instructions, and renders selected MCPs into each agent's format. Keep this checkout in place: skill links point here, so edits are shared immediately; restart/reload agent sessions for discovery changes. Credentials are never reverse-exported into Git.
 
-On the real macOS account, sync also applies changed cmux UI preferences and regenerates native OMP/Codex hooks when the cmux CLI is installed. Claude/Pi use cmux's native wrappers. Relaunch cmux if a preference requires it. Dry run executes no native commands. An isolated destination (`--home /path/to/temporary/home`) skips native preferences/hooks entirely.
+Full sync generates `~/.config/cmux/sidebars/workspaces-local.js`. On the real macOS account, it also applies changed cmux UI preferences, regenerates native OMP/Codex hooks, and validates/selects the custom sidebar when the cmux CLI is installed. Claude/Pi use cmux's native wrappers. Relaunch cmux if a preference requires it. Dry run executes no native commands. An isolated destination (`--home /path/to/temporary/home`) generates the sidebar with that home's paths but skips native preferences, hooks and sidebar activation.
 
 Existing credentials, Claude account/project state, app-managed Codex MCPs/trust/notifications, and local permission settings remain local. Matching-endpoint MCP credentials are preserved; changed endpoints do not inherit them. Sync owns the names in the shared MCP catalog and removes unselected entries with those names from user-level MCP configuration. It leaves unrelated MCPs, skills and workspace files alone. A small local ownership record allows retirement of previously synced skill links and MCP names. Foreign destination symlinks or non-directory ancestors are refused before writes. File replacement is atomic per file, not an all-files transaction; native command failure is reported rather than silently ignored.
+
+## CLI-only cmux access
+
+Hermes and OMP run inside cmux with `automation.socketControlMode = cmuxOnly`. cmux authorizes its descendant processes or clients with a valid inherited capability; no shared password is required for these CLI sessions. The tracked configuration preserves this policy on future syncs.
+
+The background Hermes bot gateway is outside that process tree and no longer has cmux access. Switching the socket policy does not stop that gateway or restart agents. Launchd-based status publishers without a valid capability are also excluded. Do not broaden access to restore background integrations without user authorization.
+
+cmux applies this setting without a restart:
+
+```sh
+cmux config set automation.socketControlMode cmuxOnly
+```
+
+Previously saved credentials remain private and unused by this mode. cmux 0.65.2 rejects its own shell reports in Password mode ([upstream issue #21396](https://github.com/manaflow-ai/cmux/issues/21396)); cmux-only avoids that authentication failure. A successful shell-report check does not establish that every saved agent resumes after a restart.
+
+Full sync installs an OMP companion extension that uses cmux's bundled CLI through the supported `CMUX_OMP_CMUX_BIN` override when that override is unset. Restored shells can therefore report sessions even when their `PATH` has no `cmux`; an explicit override still wins. The generated native OMP extension stays unchanged. If a transcript has moved, resume its verified JSONL file rather than retaining an obsolete `--session-dir`.
+
+## Hermes lifecycle adapter
+
+Install the local workaround for cmux's Hermes session identity and turn-boundary handling without building or replacing cmux:
+
+```sh
+python3 sync.py --only-hermes --dry-run
+python3 sync.py --only-hermes
+```
+
+Full sync includes the same adapter. If `~/.local/bin/hermes` is the standard two-line launcher, sync preserves its original contents privately as `~/.hermes/cmux-bridge/hermes-original` and installs a launcher-scoped cmux frontend. Sync also recognizes the exact previous managed frontend and keeps its preserved original during upgrades. Custom launchers and foreign symlinks are refused; a missing Hermes launcher is not created. Install Hermes independently first.
+
+Only Hermes hook calls are translated. Native cmux retains authentication, routing, notifications, approvals and restore bookkeeping. The adapter enriches callbacks with an authoritative conversation ID, skips unidentifiable callbacks, sends turn completion as `Stop`, and preserves genuine finalization as `SessionEnd`. Other cmux commands pass through. No profile configuration, hook-consent entries, passwords or session data are copied into the repository.
+
+At native TUI startup, a helper waits up to ten seconds for a local CLI lease with a resolved `metadata.live_session_id`. It matches the lease to the frontend's PID and kernel start time, then asks native cmux to resolve that PID's controlling TTY to the intended surface before reporting session start. Ambiguous leases are rejected, and an already registered owner is left unchanged. The helper exits after registration or timeout; it does not start a model turn or remain as a daemon.
+
+Verified against cmux 0.65.2. Its TUI bootstrap retains the native queued finalization callback, which also passes through this frontend; the native watcher is unchanged. Recheck the native hook and bootstrap contracts after cmux upgrades.
+
+New Hermes launches inherit the adapter after cmux's native hook installer runs, so existing hook commands and approvals stay intact. Sync does not modify running sessions; normal relaunches inherit the frontend. Hermes's `/reload` reads local `.env` settings but does not reload hook registrations. Do not submit an LLM prompt to test installation.
+
+## Native persistent terminal sessions
+
+cmux 0.65.2 provides opt-in `local-tmux` sessions under **Settings → Terminal → Keep Local Sessions Alive**. Install tmux independently (`brew install tmux` on this Mac); repository sync does not install it, start agents, or migrate running terminals.
+
+For an explicitly selected workspace, create a detached owner, then attach without taking focus:
+
+```sh
+cmux local-tmux start coding --cwd "$PWD" --command 'omp' --detached
+cmux local-tmux attach coding --workspace "$CMUX_WORKSPACE_ID" --focus false
+cmux local-tmux list --json
+```
+
+The tmux owner keeps its process and PTY when cmux closes, crashes, or updates. cmux persists a guarded reattach command, rather than restarting the agent conversation. This does not survive logout, a Mac reboot, or termination of the tmux server. Closing a client terminal leaves its owner running; `cmux local-tmux close coding` terminates that owner.
+
+**Agent migration limitation:** native `local-tmux` deliberately strips `CMUX_*` identity and credentials from persistent owners. The installed OMP extension and Hermes adapter require `CMUX_SURFACE_ID` before emitting lifecycle hooks; attaching a client does not add that identity to an existing process. Native process persistence therefore does not establish Working/Finished/Needs-input sidebar parity. Preserve existing agents until that tradeoff is explicitly accepted or hook routing is verified. Migrate only stopped conversations or verified-idle agents with empty composers; leave busy agents and the active view untouched.
+
+See the [native persistence contract](https://github.com/manaflow-ai/cmux/blob/v0.65.2/docs/local-tmux.md). Session IDs, conversation paths, tmux registry state, and credentials remain local.
+
 
 ## Sources of truth
 
@@ -28,8 +82,8 @@ Existing credentials, Claude account/project state, app-managed Codex MCPs/trust
 - `cmux/`: terminal/sidebar preferences and inherited Ghostty configuration.
 - `integrations/atuin/config.toml`: quiet history settings; agent hook commands require Atuin on PATH.
 - `integrations/personal-backlog/`: central queue launcher, compact read-only Dock TUI, native cmux summary, login-service template, configuration and dependency declaration. Task data is excluded.
-- `integrations/hermes-cmux/`: local direct-access bridge source. Authentication and UUID-pinned approval files remain local.
-- `integrations/cmux-sidebar/`: Workspaces custom-sidebar template with one independent local-data row and a command/file/SQLite collector. Not installed or enabled by sync.
+- `integrations/hermes-cmux/`: direct-access bridge and launcher-scoped lifecycle adapter. Authentication, hook consent, preserved native launchers and UUID-pinned approval files remain local.
+- `integrations/cmux-sidebar/`: Workspaces custom-sidebar template with one independent local-data row and a command/file/SQLite collector. Full sync installs/updates the template and selects it on the real Mac; data collection remains optional and separate.
 
 Skills are linked into `~/.agents/skills`; Claude's native `~/.claude/skills` links point to the same directories. OMP and Pi are configured to use the shared root, and Codex discovers it natively. Runtime-specific invocation/visibility limits are documented in [skill mechanics](skills/writing-for-agents/SKILL-MECHANICS.md). Loading guidance never grants operational permissions.
 
@@ -113,11 +167,15 @@ Priority labels use subdued dusty rose for High, amber for Medium and blue-gray 
 
 The fixed `queue-macchiato` Textual theme preserves the Catppuccin Macchiato navy hue with a much darker `#11131f` canvas. Inputs (`#191c2c`), selected cards (`#202437`) and project chips use related dark surfaces. Existing status accents remain unchanged. This is a preset, not automatic terminal-theme detection, and does not modify Ghostty/cmux settings.
 
+Mouse hover brightens cards to `#303348` without changing the selected task. Moving the pointer away restores the card's normal or selected background.
+
 Backlog calls tags **labels**; existing `waiting` and `deferred` labels are already displayed and searchable. `--add-label blocked` can supplement a blocker comment without replacing labels or changing progress status; `--remove-label blocked` removes it. Milestones represent actual checkpoints, not blocked states. Backlog also has a separate `--project` field, but project names must first be configured; this queue currently has no configured projects or milestones. No labels, projects or milestone assignments are inferred by the viewer.
 
 Scoped restore installs the viewer and hash-pinned dependency manifest, but neither provisions its environment nor starts a service. It merges only the `personal-backlog` control into `~/.config/cmux/dock.json`, preserving unrelated controls and settings. This seeds fresh Docks; saved Dock layouts take precedence. Add `work-queue tui` as a terminal tab in an existing global Dock instead of reloading its config, which replaces open Dock panes. The full native queue remains available through bare `work-queue` for editing.
 
-The optional native sidebar publishes counts and up to three task titles every ten seconds; extra rows may be collapsed by cmux. Its destination IDs are deliberately unset in `integrations/personal-backlog/cmux.json`. To enable it, resolve the intended window/workspace explicitly, fill in both UUIDs in that local source file and rerun sync. Keep machine-specific values out of public commits. The updater refuses to run without valid IDs and never silently rebinds.
+The optional native sidebar publishes counts and up to three task titles every ten seconds; extra rows may be collapsed by cmux. Its destination IDs are deliberately unset in `integrations/personal-backlog/cmux.json`. After sync, resolve the intended window/workspace explicitly and set `window_id` and `workspace_id` in `~/.config/personal-backlog/cmux.json`. Keep machine-specific values out of the repository. The updater refuses to run without valid IDs and never silently rebinds.
+
+Full sync and `--only-backlog` preserve existing local destination IDs, including explicit `null` values used to leave the updater unconfigured. Missing keys use repository defaults; other settings such as `summary_limit` remain repo-owned.
 
 Only after configuring the destination, load the updater:
 
@@ -140,17 +198,23 @@ The notification fill is an explicitly sized `RoundedRectangle` behind the count
 
 Workspace titles, agent names, and other details use the same 4-point icon-to-text gap. Title indicators have a 2-point top inset to align their boxes with the default title's first line, including wrapped titles.
 
-Rows show leading agent-status icons with full-status tooltips, descriptions capped at two lines, Git branches (`*` means dirty), and directories. Working uses a blue dot, needs-input a red dot, and idle a green circled checkmark. Ended sessions are omitted; idle agents are still open and remain visible. Unknown states stay muted. Paths under the local user's home become `~/…`, with the original path in a tooltip; remote paths and similarly named home directories are not rewritten. The last-path-segment setting still takes precedence. Vertical branch layout includes distinct panel locations without duplicating identical records. Available PRs, ports, remote connection details, progress, and latest messages follow their visibility settings.
+Rows show leading agent-status icons with full-status tooltips, descriptions capped at two lines, Git branches (`*` means dirty), and directories. Working uses a blue dot and needs-input a red dot. Finished uses a green filled checkmark and a green semibold `Finished` label; idle uses a muted hollow circle with ordinary secondary text. Ended sessions are omitted; open idle agents remain visible. Unknown states stay muted. Paths under the local user's home become `~/…`, with the original path in a tooltip; remote paths and similarly named home directories are not rewritten. The last-path-segment setting still takes precedence. Vertical branch layout includes distinct panel locations without duplicating identical records. Available PRs, ports, remote connection details, progress, and latest messages follow their visibility settings.
+
+cmux reports completed turns as `idle`. The sidebar marks an idle agent Finished only while its own terminal has an unread notification (`agent.panelId` matches `tabs[].id` with `hasUnread`). Reading that terminal's notification returns the agent to quiet idle; starting another turn shows Working even if an older notification remains unread. Workspace-wide unread counts, other terminals' notifications, and missing surface bindings never mark an agent Finished. This indicates an unread result, not a separate completion-history state; completions without an unread notification remain idle.
+
+Agent rows also require a positive process ID and a `panelId` matching an open workspace tab. cmux can restore conversation metadata as `idle` without a process binding, including transcript-path aliases of an already open conversation. These records stay hidden until a hook or process observation supplies that binding. Native exit tracking handles known processes; the sidebar neither deletes conversation history nor changes resume commands.
 
 Agent status comes from each agent session, not the workspace's task-status lane; workspaces without agents do not show a fabricated status. Metadata stays visible during rename. This is not full built-in-row parity: descriptions/messages are literal text, PR/port rows are display metadata, and arbitrary custom status/log entries, agent usage statistics, and some native indicators are absent from the custom-sidebar context.
 
-If discovered agents remain idle, check hook delivery before changing icon logic. A live process alone does not establish an active turn. With socket control in Password mode, cmux needs a configured socket password; hooks and the CLI read its private `~/.local/state/cmux/socket-control-password` file automatically. Configure it through **Settings → Automation → Socket Password**, keep it out of this repository, and do not disable authentication to work around missing events. Start events lost before authentication was repaired are not replayed; an existing turn may remain idle until its next hook event.
+If discovered agents remain idle, check hook delivery before changing icon logic. A live process alone does not establish an active turn. This setup uses cmux-only access for agents launched inside cmux; keep that boundary rather than enabling unrestricted automation. cmux 0.65.2's native shell-report transport does not authenticate in Password mode ([upstream issue #21396](https://github.com/manaflow-ai/cmux/issues/21396)); rejected shell-readiness reports can leave agent auto-resume input waiting at a restored shell. Start events lost before access was repaired are not replayed; an existing turn may remain idle until its next hook event.
 
 This uses cmux's interpreted custom sidebar mechanism: no compiled extension, preview app, signing, or folder grants. It is a selectable replacement for the built-in sidebar, not an injected view inside the built-in implementation.
 
 ### Run and select
 
-Requires Python 3.11+ and cmux Custom Sidebars enabled. The template was taken from cmux 0.65.2. From the repository root:
+Full sync installs or updates **workspaces-local** and selects it on the real Mac when the cmux CLI is available. It preserves the generated sidebar's embedded data snapshot, original collection timestamp, and top/bottom placement; a fresh install starts with no source data. Sync does not execute collection commands, edit local source configuration, or start an updater. `--only-backlog` leaves the custom sidebar untouched. Unrecognized files or symlink destinations are refused before any sync writes.
+
+To collect or continuously refresh local data, run the producer separately. It requires Python 3.11+ and cmux Custom Sidebars enabled. The template was taken from cmux 0.65.2. From the repository root:
 
 ```sh
 cd integrations/cmux-sidebar
@@ -164,7 +228,7 @@ cp -n example-config.json config.local.json
 
 On the Mac used for verification, the isolated runtime is `.build/python/cpython-3.13.16-macos-aarch64-none/bin/python3` relative to this integration directory; the system Python is too old. Set `PYTHON` to that executable if using the retained local runtime.
 
-Right-click cmux's sidebar toggle button and choose **workspaces-local**. Switch back to the built-in Workspaces provider in the same menu. With authenticated CLI access, `cmux sidebar select workspaces-local` also selects it. The updater does not need cmux socket access.
+Full sync selects **workspaces-local** automatically. To switch manually, right-click cmux's sidebar toggle button and choose **workspaces-local**, or use `cmux sidebar select workspaces-local` with authenticated CLI access. Switch back to the built-in Workspaces provider in the same menu; the next full sync selects **workspaces-local** again. The producer itself does not need cmux socket access.
 
 The public example has no sources configured: the leading data row remains visible, but contains no external data. Add sources only to ignored `config.local.json`. Add `--position bottom` to put the data view after all workspaces; the default is `top`. This is list placement, not a viewport-pinned footer. `--watch` runs in the foreground; Ctrl-C stops it and active collection subprocesses. Without `--watch`, it writes once. No login service is installed.
 
@@ -174,7 +238,7 @@ The public example has no sources configured: the leading data row remains visib
 - **Layout:** edit [`sidebar.js`](integrations/cmux-sidebar/sidebar.js), especially `externalDataRow()`. The producer rereads the template each cycle.
 - **Collection:** edit [`producer.py`](integrations/cmux-sidebar/producer.py).
 
-Do not edit the generated `~/.config/cmux/sidebars/workspaces-local.js`; the next update replaces it. The producer embeds serialized data as a safely escaped JSON string and atomically publishes the complete sidebar. External data is displayed literally, never evaluated as code.
+Do not edit the generated `~/.config/cmux/sidebars/workspaces-local.js`; the next sync or producer update replaces it. Both use the same renderer, which embeds serialized data as a safely escaped JSON string. Sync backs up replaced files privately and publishes each replacement atomically. External data is displayed literally, never evaluated as code.
 
 Each configured section has `id`, `title`, and exactly one source:
 
@@ -194,7 +258,7 @@ Source errors appear first in the same data view; healthy output remains availab
 
 Generated sidebar files are mode `0600`; newly created parent directories are `0700`. Existing directory permissions are unchanged. Source outputs can contain sensitive information; keep local configuration and generated files out of version control. Collection is bounded to 1 MiB per source/combined data snapshot, 32 sources, and 200 items per source; the generated JS is larger because it also includes the template and JSON escaping.
 
-Run regressions with Python 3.11+: `python3 -B -m unittest discover -s tests -p test_cmux_sidebar_producer.py -v`. With socket access, `cmux sidebar validate workspaces-local` validates through the host. Attribution and the copied template's GPL license are recorded in [third-party notices](THIRD_PARTY_NOTICES.md).
+Run regressions with Python 3.11+: `python3 -B -m unittest discover -s tests -p 'test_cmux_sidebar*.py' -v`. The JavaScript visibility case also needs Node on `PATH` and the installed cmux sidebar runtime; it is explicitly skipped when either is unavailable. With socket access, `cmux sidebar validate workspaces-local` validates through the host. Attribution and the copied template's GPL license are recorded in [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Hermes and OpenCode snapshots
 

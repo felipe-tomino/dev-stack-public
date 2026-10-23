@@ -8,6 +8,6 @@
   },
   "schemaVersion": 1,
   "automation": {
-    "socketControlMode": "password"
+    "socketControlMode": "cmuxOnly"
   }
 }

@@ -27,9 +27,9 @@ Codex implements project changes, runs tests, and performs Git operations. Do no
 
 ## Current architecture: on-demand direct access
 
-Use `@HOME@/.hermes/cmux-bridge/direct.py`. It invokes the bundled cmux CLI against cmux's **password-authenticated local Unix socket**. There is no extra daemon, LaunchAgent, dedicated pane or manual startup. cmux must be running on the Mac. Do not instruct the user to run `bridge.py serve`; that legacy workflow is superseded. `bridge.py` remains as a tested routing helper imported by direct.py, not a running service.
+Use `@HOME@/.hermes/cmux-bridge/direct.py` from Hermes CLI running inside cmux. It invokes the bundled cmux CLI against the local Unix socket under **cmux-only access**. Descendant processes or clients with a valid inherited capability are authorized without a shared password. The background bot gateway is intentionally excluded. No relay daemon, dedicated pane or manual startup is required; do not run `bridge.py serve`.
 
-Before use on this Mac, verify authenticated `status` and live metadata discovery, confirm the native socket-control configuration requires password authentication, and check owner-only permissions on the native config, credential file and socket without reading or printing credential contents. A restored snapshot does not establish those checks or create a backup. Changing authentication requires explicit user authorization. Never print credential configuration or password-file content. The supported CLI reads its saved credential automatically; do not pass passwords in chat or command literals.
+Before use, verify `status` and live metadata discovery, confirm `automation.socketControlMode` is `cmuxOnly`, and check owner-only permissions on the native config and socket. A restored snapshot does not establish those checks. Changing access policy requires explicit user authorization; do not enable Password, Automation or Allow All to restore background bot access. Keep saved credentials private; CLI sessions in cmux do not require them.
 
 Actual remote access to Hermes is a separate authenticated chat transport, not configured by this client. Never expose cmux or a relay over unauthenticated TCP. Do not modify another Hermes profile.
 
@@ -61,11 +61,11 @@ Hermes runs these commands for the user. Session selection and approval can occu
 
 ## Security limits
 
-cmux password authentication is not session-scoped. The approval file is a client policy, not a server-side boundary. Other same-user processes that obtain the saved credential can issue broader cmux API requests. These restrictions do not globally enforce all Hermes tools.
+cmux-only access is process/capability-scoped, not session-scoped. The approval file is a client policy, not a server-side boundary; an authorized process can issue broader cmux API requests. These restrictions do not globally enforce all Hermes tools.
 
 A terminal UUID identifies a terminal, not a Codex process; Codex can exit into a shell with the same UUID. Terminal output/title cannot authenticate readiness. Membership check and paste are separate operations, and local typing remains possible. Keep read-before-send and explicit task authorization.
 
-To revoke direct access without stopping cmux, use the supported config command (only when requested):
+Restore the configured CLI-only policy without restarting cmux only when requested:
 
 ```sh
 /Applications/cmux.app/Contents/Resources/bin/cmux config set automation.socketControlMode cmuxOnly

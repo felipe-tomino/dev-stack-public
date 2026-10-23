@@ -7,5 +7,6 @@
 - For communication intended for use outside the current chat, MUST read `skill://writing` before drafting or editing. It applies `no-ai-slop` internally and returns ready-to-use text without an edit report unless requested. Ordinary in-chat explanations and status reports do not trigger it unless the user will reuse them elsewhere. Drafting grants no permission to send or publish.
 - For Google Docs/Sheets URLs, Drive discovery, or Gmail reading/draft creation, read `skill://google-workspace`; use the locally authenticated `gws` CLI and verify writes by reading them back. Saving a Gmail draft does not authorize sending.
 - When applying these skills, read `~/.omp/agent/personal-skills/POLICY.md`. It defines scope, material decision questions, evidence, meaningful tests, runtime verification, and side-effect boundaries. Skill loading alone never authorizes commit, push, PR publication, deployment, or tracker mutation.
+- Before UI testing, screenshots, or creating test tabs/workspaces, MUST read the **Focus preservation** section in `~/.agents/skills/POLICY.md`.
 
 - Personal commitment capture, status/blocker updates, completion evidence, morning briefs, or “what next”: read `skill://personal-backlog`, the sole shared personal queue workflow. Queue access grants no new scope or side-effect permissions.

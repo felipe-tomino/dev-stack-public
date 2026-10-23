@@ -206,7 +206,7 @@ class QueueApp(App):
     TaskCard { width: 100%; height: auto; padding: 0 1; margin-bottom: 1;
                border-left: solid $panel; }
     TaskCard.selected { background: $panel; }
-    TaskCard:hover { background: $boost; }
+    TaskCard:hover { background: $panel-lighten-1; }
     #empty { height: auto; padding: 1; }
     #detail-title { height: auto; padding: 0 1; text-style: bold; }
     #detail-meta, #detail-state { height: auto; padding: 0 1; color: $text-muted; }

@@ -1,5 +1,88 @@
 # Changelog
 
+## Restore backlog card hover highlighting
+
+- Replace the transparent `$boost` hover background with `$panel-lighten-1` (`#303348`), so hovering brightens both selected and unselected cards.
+- Add a rendered-background regression test covering mouse entry, mouse exit and unchanged selection.
+
+Verification: all 17 TUI tests passed. Scoped sync installed only `queue-tui.py`. The installed viewer loaded the real queue and brightened both card states; the installed `work-queue tui` also rendered the brighter background in response to SGR mouse events in an isolated PTY and exited cleanly. No GUI focus changes or task writes. Already-open viewers need to be reopened to load the updated styling.
+
+## Hide non-open agents from the sidebar
+
+- Require a process binding and an open terminal binding for non-ended agent rows. Hide idle restore placeholders, including duplicate transcript-path records.
+- Keep genuinely open idle, working and needs-input agents visible. Preserve Finished styling, conversation history and resume commands.
+
+Verification: the installed native JavaScript scene rendered 11 process-bound agents instead of 14 rows using current registry and terminal data. Removing a binding reduced the rendered count to 10; restoring it returned the count to 11. Native sidebar validation and scoped reload passed. All 11 frontend PIDs and 19 registry records were retained; no test tabs or workspaces were opened and no agents were restarted.
+
+Regression checks: 24 sidebar tests and 29 sync safety tests passed; one optional native-CLI check was skipped. The visibility regression uses cmux's installed JavaScript runtime and verifies that open idle/working/needs-input agents survive while restore aliases, stopped sessions, ended sessions and closed/unbound panels are omitted.
+
+## Repair partial CLI conversation restoration
+
+- Keep OMP hook delivery working under a restored minimal `PATH` through its supported bundled-CLI override, preserving explicit overrides and leaving the generated native extension unchanged.
+- Observe Hermes CLI startup from its resolved live-session lease, exact PID generation, and native controlling-TTY attestation. Record startup without a model prompt; skip an existing owner and exit after a bounded wait.
+- Upgrade the exact previous managed Hermes launcher without replacing its preserved original; continue refusing custom launchers.
+
+Verification: recovered two OMP and two Hermes conversations in their existing empty terminals. OMP resumes now use verified transcript paths instead of obsolete custom session directories. All four retain their conversation identities, prepared resume arguments, and persisted `wasAgentRunning = true`. Hermes ownership records now point to the live frontend generations. The active view stayed unchanged; no model prompts, native app replacement, or additional cmux restart were performed.
+
+Regression checks: 29 sync safety tests and 28 Hermes tests passed; one optional native-CLI check was skipped. An isolated launch exercised the installed frontend's exec-preserving background observer, resolved live identity, and clean child exit. The actual installed OMP extension delivered startup under a minimal `PATH` and retained explicit override precedence. Scoped Hermes sync then reported zero changes. Another full cmux restart remains untested.
+
+## Use cmux-only access for CLI agents
+
+- Switch live and tracked socket control to `cmuxOnly` for Hermes and OMP launched inside cmux; future syncs retain the policy.
+- Update shared and profile-specific Hermes proxy guidance and the installed direct-client notes. Keep exact-target approvals and user-authorized sends unchanged.
+- Exclude the background bot gateway from cmux access without stopping it, restarting agents, or deleting private credentials.
+
+Verification: native configuration validation passed. In-cmux native and Hermes CLI probes returned `PONG`; the same Hermes probe reparented to launchd without a capability was denied. A disposable unfocused shell reported its TTY, working directory and Git branch, and a raw prompt-state report returned `OK` without password authentication. Closed the fixture; the active view, cmux process and all 16 recorded agent process identities remained unchanged. A full cmux restart and saved-agent restoration were not exercised.
+
+Regression checks: 29 sync safety tests and 23 Hermes integration tests passed. Two actual syncs into an isolated home retained `cmuxOnly`; the second reported zero changes. Removed the isolated home.
+
+## Document native persistent-session setup and migration limits
+
+- Document cmux's opt-in `local-tmux` workflow, independent tmux installation, unfocused attachment, and app-restart versus Mac-reboot guarantees.
+- Record the OMP/Hermes lifecycle-hook identity gap before migrating agents, and distinguish native shell-report authentication from the authenticated CLI/agent-hook path.
+
+Verification: installed tmux 3.8. Native detached-owner/client smoke runs preserved the same process PID across detach/reattach and closure of the entire disposable GUI workspace. The client carried cmux's guarded reattach command; the persistent owner lacked cmux identity as designed. Active workspace/tab and Password mode remained unchanged. Removed all test owners and workspaces. No user agent was stopped or migrated; migration awaits an informed decision about sidebar lifecycle status. cmux itself was not restarted.
+
+## Preserve user focus during verification
+
+- Add a shared focus-preservation policy: keep the user's active view, create test tabs/workspaces unfocused, and ask before verification that would take focus, including screenshots.
+- Point OMP, Pi, Codex, Claude, OpenCode (global and default profile), and both Hermes profiles to the policy from their startup instructions.
+
+Verification: synced only the eight installed instruction files, read back their policy pointers, and confirmed byte-for-byte agreement with the existing sync renderer. Both shared policy entrypoints resolve to the repository source. No agents were restarted, native commands executed, or focus changed.
+
+## Distinguish finished agents from idle
+
+- Show unread results with a green filled checkmark and green semibold `Finished` text. Keep idle agents quiet with a muted hollow circle and secondary text.
+- Scope completion attention to the idle agent's own terminal notification, clearing it when read. Preserve working/needs-input precedence and omit ended sessions.
+
+Verification: 23 producer regressions passed. The installed cmux JavaScript runtime exercised unread/read transitions, unrelated idle agents, working/needs-input precedence, missing surface bindings, and ended-session omission. A native preview rendered all four visible states. Published the active sidebar while preserving its snapshot and preferences; native reload passed, and the live sidebar showed one Finished agent alongside quiet idle agents.
+
+## Local Hermes lifecycle adapter
+
+- Add a Python adapter for cmux's Hermes identity and turn-boundary handling without building or replacing the native app. Preserve authoritative conversation IDs, skip unidentifiable callbacks, translate turn completion to `Stop`, and keep genuine finalization as `SessionEnd`.
+- Full sync and `--only-hermes` install a launcher-scoped cmux frontend. Preserve the standard Hermes launcher privately, refuse custom launchers and foreign symlinks, and leave profile configuration, hook approvals and native authentication untouched.
+- Keep existing native hook commands and approvals so cmux's automatic hook installer cannot bypass the adapter on future Hermes launches. Other cmux commands pass through.
+
+Verification: 29 sync safety tests and 23 Hermes integration regressions passed. The installed adapter exercised the actual native CLI against a disposable socket: session start, private-TUI identity recovery, turn completion, next turn, ID-less suppression and genuine finalization all retained the expected identity and restore-store behavior. Live scoped sync installed four files and planned zero changes on repeat. Both idle Hermes sessions acknowledged an authorized `/reload`; temporary environment settings were removed and dotenv, profile configuration and consent remained byte-identical. Targeted Feed reconciliation left exactly one idle live Hermes record per terminal and ended the two synthetic fallback records. No LLM prompt was sent and no process was restarted.
+
+The actual native installer and installed TUI bootstrap also retained the queued finalization callback, confirming that this entrypoint reaches the adapter without replacing the watcher.
+
+## Sync the active custom sidebar
+
+- Full sync installs or updates `~/.config/cmux/sidebars/workspaces-local.js` through the producer's shared renderer, then validates and selects it on the real Mac when cmux is available.
+- Preserve embedded local data, its collection timestamp and top/bottom placement. Refresh the UI template and supported appearance settings without executing source commands, editing local source config, or starting a background service.
+- Back up replacements privately, refuse unrecognized files and symlink destinations before writes, and keep `--only-backlog` scoped. Dry runs execute no native commands or collection sources and create no producer bytecode cache.
+
+Verification: 26 sync safety tests and 23 producer regressions passed. Actual isolated sync replaced an outdated layout, retained data/placement, created a private backup and changed zero files on repeat. Live full sync switched from the old provider to **workspaces-local**, passed native validation and retained the already-current sidebar without rewriting it; the active UI was inspected.
+
+## Preserve machine-local backlog routing
+
+- Full sync and `--only-backlog` retain existing `window_id` and `workspace_id` values in the installed backlog configuration, including explicit `null` values.
+- Missing destination keys use repository defaults; other backlog preferences continue to update from the repository.
+- Configure destination IDs in `~/.config/personal-backlog/cmux.json` rather than editing tracked source files.
+
+Verification: all 23 sync safety tests passed. The routing regression failed before the fix for both full and scoped sync, then passed. Live scoped sync and repeat dry run reported zero changes; full dry run no longer included backlog routing.
+
 ## Align workspace text and title indicators
 
 - Matched agent-name and title icon-to-text gaps to the other detail rows at 4 points, placing their text on the same guide when a leading badge is present.

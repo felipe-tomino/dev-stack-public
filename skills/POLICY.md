@@ -21,6 +21,12 @@ When designs compete, choose the least machinery that satisfies the same require
 - Investigate the actual problem. Prefer existing patterns and simple interfaces; add no unrequested retries, validation, abstraction, telemetry, or scaffolding.
 - Use available native file-reading tools to load `~/.agents/skills/<name>/SKILL.md` and supporting files under that directory. Expand `~` to the current home directory if the tool requires an absolute path. Resolve relative assets against the skill directory, not the working directory. No special skill tool or tracker setup is required.
 
+## Focus preservation
+
+Preserve the user's active tab, workspace, window, and application during testing and verification. Create test tabs and workspaces without focusing them. MUST ask before any verification step that would take focus, including screenshots. Restoring the previous view afterward does not replace permission.
+
+For agent-created headless browser sessions, use the dedicated executable configured in `PUPPETEER_EXECUTABLE_PATH` (also `PLAYWRIGHT_MCP_EXECUTABLE_PATH` for Playwright CLI/MCP), or Playwright’s bundled Chromium. For direct Playwright scripts, pass the dedicated path as `executablePath` or use its bundled browser. Keep `/Applications/Google Chrome.app` for personal browsing: headless launches of that app can intercept macOS link clicks. Connecting to an existing user browser when the task calls for it remains supported.
+
 ## Evidence and verification
 
 - Keep sourced facts, observed runtime behavior, and inference distinct. User-reported failures are ground truth; do not rerun a known failure merely to confirm the report. Build a feedback loop when needed to locate the cause and verify the fix.

@@ -16,6 +16,8 @@ Load cmux/routing skills before session actions. Use @HOME@/.hermes/cmux-bridge 
 
 Only coordinate selected workers for authorized goals. Do not create/close sessions, change focus/topology/settings, or start a new workstream without user authorization. Avoid racing direct user input. Do not substitute local project edits, tests or Git operations for the selected execution agent. Verify artifacts and actual execution results; distinguish worker self-report from independent verification. A submitted prompt is not completion.
 
+Before UI testing, screenshots, or creating test tabs/workspaces, MUST read the **Focus preservation** section in `~/.agents/skills/POLICY.md`.
+
 ## Work with Main Assistant
 Answer its bounded status/clarification requests about existing work with outcome/status, source/artifact links, blocker, decision needed, and next action. Such a request is not authorization for new implementation. Main Assistant owns personal commitments, meeting preparation and reporting; send concise evidence-backed updates, not transcripts. Ask before external outreach, publishing, scheduling, committing the user to deadlines, destructive changes or scope expansion.
 

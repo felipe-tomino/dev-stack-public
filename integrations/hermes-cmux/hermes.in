@@ -1,0 +1,18 @@
+#!/bin/sh
+# dev-stack Hermes lifecycle adapter; native cmux and hook consent stay unchanged.
+adapter=@HOME_SHELL@/.hermes/cmux-bridge/cmux
+if [ -n "${CMUX_SURFACE_ID:-}" ] && [ "${CMUX_HERMES_AGENT_HOOKS_DISABLED:-}" != 1 ]; then
+    native="${CMUX_HERMES_NATIVE_CLI_PATH:-${CMUX_BUNDLED_CLI_PATH:-}}"
+    if [ -z "$native" ]; then native="$(command -v cmux 2>/dev/null || true)"; fi
+    if [ "$native" != "$adapter" ] && [ -x "$native" ] && [ -x "$adapter" ]; then
+        export CMUX_HERMES_NATIVE_CLI_PATH="$native"
+        export CMUX_BUNDLED_CLI_PATH="$adapter"
+        export CMUX_HERMES_AGENT_PID="${CMUX_HERMES_AGENT_PID:-$$}"
+        case "${TMPDIR:-}" in
+            */cmux-hermes-tui.??????)
+                /usr/bin/python3 @HOME_SHELL@/.hermes/cmux-bridge/startup_session.py </dev/null >/dev/null 2>&1 &
+                ;;
+        esac
+    fi
+fi
+exec @HOME_SHELL@/.hermes/cmux-bridge/hermes-original "$@"

@@ -4,6 +4,8 @@ Prefer the editable personal skills in `~/.agents/skills` over equivalent option
 
 When applying a personal skill, first read `~/.agents/skills/POLICY.md`; it is the shared policy authority. KISS governs all design principles: choose the simplest complete design that preserves correctness and mandatory contracts. Skill loading alone grants no permission to commit, push, publish, deploy, provision, or mutate tracker state.
 
+Before UI testing, screenshots, or creating test tabs/workspaces, MUST read the **Focus preservation** section in `~/.agents/skills/POLICY.md`.
+
 ## Task routing
 
 Use available native file-reading tools to read `~/.agents/skills/<name>/SKILL.md`, expanding `~` if required. Resolve supporting relative paths against that skill's directory. This works without a special Skill tool, slash command, or delegation API.

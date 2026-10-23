@@ -12,6 +12,21 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+LEGACY_HERMES_LAUNCHER = '''#!/bin/sh
+# dev-stack Hermes lifecycle adapter; native cmux and hook consent stay unchanged.
+adapter=@HOME_SHELL@/.hermes/cmux-bridge/cmux
+if [ -n "${CMUX_SURFACE_ID:-}" ] && [ "${CMUX_HERMES_AGENT_HOOKS_DISABLED:-}" != 1 ]; then
+    native="${CMUX_HERMES_NATIVE_CLI_PATH:-${CMUX_BUNDLED_CLI_PATH:-}}"
+    if [ -z "$native" ]; then native="$(command -v cmux 2>/dev/null || true)"; fi
+    if [ "$native" != "$adapter" ] && [ -x "$native" ] && [ -x "$adapter" ]; then
+        export CMUX_HERMES_NATIVE_CLI_PATH="$native"
+        export CMUX_BUNDLED_CLI_PATH="$adapter"
+        export CMUX_HERMES_AGENT_PID="${CMUX_HERMES_AGENT_PID:-$$}"
+    fi
+fi
+exec @HOME_SHELL@/.hermes/cmux-bridge/hermes-original "$@"
+'''
+
 
 class SyncSafetyTests(unittest.TestCase):
     def setUp(self):
@@ -25,6 +40,66 @@ class SyncSafetyTests(unittest.TestCase):
         return subprocess.run([sys.executable, "-B", str(checkout / "sync.py"), "--home", str(self.home), *options],
                               text=True, capture_output=True, cwd=self.root,
                               env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+
+    def test_hermes_launcher_keeps_original_private_and_survives_repeat_sync(self):
+        launcher = self.home / ".local/bin/hermes"
+        launcher.parent.mkdir(parents=True)
+        original = '#!/bin/sh\nexec "/local/hermes-runtime/bin/hermes" "$@"\n'
+        launcher.write_text(original)
+        launcher.chmod(0o700)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        saved = self.home / ".hermes/cmux-bridge/hermes-original"
+        self.assertEqual(saved.read_text(), original)
+        self.assertNotEqual(launcher.read_text(), original)
+        for path in (launcher, saved, self.home / ".hermes/cmux-bridge/cmux"):
+            self.assertEqual(path.stat().st_mode & 0o777, 0o700)
+        modified = saved.stat().st_mtime_ns
+        repeated = self.run_sync()
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertEqual(saved.read_text(), original)
+        self.assertEqual(saved.stat().st_mtime_ns, modified)
+
+    def test_known_managed_hermes_launcher_upgrades_without_replacing_original(self):
+        self.home = self.root / "home with 'quotes' & unicode ☕"
+        launcher = self.home / ".local/bin/hermes"
+        saved = self.home / ".hermes/cmux-bridge/hermes-original"
+        launcher.parent.mkdir(parents=True)
+        saved.parent.mkdir(parents=True)
+        original = '#!/bin/sh\nexec /local/hermes-runtime/bin/hermes "$@"\n'
+        previous = LEGACY_HERMES_LAUNCHER.replace("@HOME_SHELL@", shlex.quote(str(self.home)))
+        launcher.write_text(previous)
+        saved.write_text(original)
+        result = self.run_sync("--only-hermes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(saved.read_text(), original)
+        self.assertNotEqual(launcher.read_text(), previous)
+        backups = list((self.home / ".local/state/dev-stack/backups").rglob(".local/bin/hermes"))
+        self.assertEqual([path.read_text() for path in backups], [previous])
+        repeated = self.run_sync("--only-hermes")
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertIn("Synced 0 changes", repeated.stdout)
+
+    def test_hermes_custom_launcher_is_not_overwritten(self):
+        launcher = self.home / ".local/bin/hermes"
+        launcher.parent.mkdir(parents=True)
+        original = "#!/bin/sh\n# User-owned launcher with custom setup\nexec /local/hermes\n"
+        launcher.write_text(original)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(launcher.read_text(), original)
+        self.assertFalse((self.home / ".hermes").exists())
+
+    def test_hermes_only_sync_does_not_read_or_replace_unrelated_auth(self):
+        private = self.home / ".config/cmux/cmux.json"
+        private.parent.mkdir(parents=True)
+        private.write_text("private config not interpreted by this operation")
+        result = self.run_sync("--only-hermes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(private.read_text(), "private config not interpreted by this operation")
+        self.assertFalse((self.home / ".codex").exists())
+        self.assertFalse((self.home / ".local/bin/hermes").exists())
+        self.assertFalse((self.home / ".local/state/dev-stack/managed.json").exists())
 
     def test_regular_file_ancestor_refuses_before_any_write(self):
         blocker = self.home / ".claude"
@@ -210,11 +285,15 @@ class SyncSafetyTests(unittest.TestCase):
         private = self.home / ".hermes/profiles/main-assistant/config.yaml"
         private.parent.mkdir(parents=True)
         private.write_text("secrets:\n  key: local-only-test-value\n")
+        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
+        sidebar.parent.mkdir(parents=True)
+        sidebar.write_text("User-owned sidebar outside this scoped restore.\n")
         result = self.run_sync("--only-backlog")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(task.read_text(), "User-owned task and manually edited evidence.\n")
         self.assertEqual(settings.read_text(), "theme: user-choice\n")
         self.assertEqual(private.read_text(), "secrets:\n  key: local-only-test-value\n")
+        self.assertEqual(sidebar.read_text(), "User-owned sidebar outside this scoped restore.\n")
         self.assertNotIn("local-only-test-value", result.stdout + result.stderr)
         self.assertFalse((self.home / ".config/cmux/cmux.json").exists())
         self.assertFalse((self.home / ".hermes/profiles/main-assistant/cron").exists())
@@ -224,6 +303,108 @@ class SyncSafetyTests(unittest.TestCase):
         repeated = self.run_sync("--only-backlog")
         self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
         self.assertEqual((self.home / ".local/bin/work-queue").stat().st_mtime_ns, before)
+
+    def test_full_sync_installs_sidebar_and_preserves_its_local_data_and_placement(self):
+        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
+        preview = self.run_sync("--dry-run")
+        self.assertEqual(preview.returncode, 0, preview.stdout + preview.stderr)
+        self.assertFalse(sidebar.exists())
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        lines = sidebar.read_text().split("\n", 3)
+        appearance = json.loads(json.loads(lines[2][len("const sidebarConfig = JSON.parse("):-2]))
+        self.assertEqual(appearance["homeDirectory"], str(self.home))
+        snapshot = {"schemaVersion": 1, "generatedAt": "2026-10-19T00:00:00Z",
+                    "refreshAfterSeconds": 30, "sections": [{"id": "local", "title": "Local",
+                    "items": [{"id": "one", "title": 'Private café \"); throw new Error("unsafe"); //'}]}]}
+        lines[0] = f"const externalSnapshot = JSON.parse({json.dumps(json.dumps(snapshot))});"
+        lines[1] = 'const externalPosition = "bottom";'
+        sidebar.write_text("\n".join(lines))
+        original = sidebar.read_bytes()
+        before = sidebar.stat().st_mtime_ns
+        preview = self.run_sync("--dry-run")
+        self.assertEqual(preview.returncode, 0, preview.stdout + preview.stderr)
+        self.assertEqual(sidebar.read_bytes(), original)
+        self.assertEqual(sidebar.stat().st_mtime_ns, before)
+        self.assertNotIn("Private café", preview.stdout + preview.stderr)
+        repeated = self.run_sync()
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        installed = sidebar.read_text().split("\n", 3)
+        self.assertEqual(json.loads(json.loads(installed[0][len("const externalSnapshot = JSON.parse("):-2])), snapshot)
+        self.assertEqual(json.loads(installed[1][len("const externalPosition = "):-1]), "bottom")
+        settled = sidebar.stat().st_mtime_ns
+        again = self.run_sync()
+        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
+        self.assertEqual(sidebar.stat().st_mtime_ns, settled)
+        self.assertEqual(sidebar.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(sidebar.parent.stat().st_mode & 0o777, 0o700)
+
+    def test_unrecognized_sidebar_refuses_before_any_write(self):
+        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
+        sidebar.parent.mkdir(parents=True)
+        original = "// My independently authored sidebar; do not replace.\n"
+        sidebar.write_text(original)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(sidebar.read_text(), original)
+        self.assertFalse((self.home / ".omp").exists())
+
+    def test_symlinked_sidebar_cannot_redirect_sync_writes(self):
+        outside = self.root / "outside-sidebar.js"
+        outside.write_text("User-owned external sidebar.\n")
+        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
+        sidebar.parent.mkdir(parents=True)
+        sidebar.symlink_to(outside)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(outside.read_text(), "User-owned external sidebar.\n")
+        self.assertTrue(sidebar.is_symlink())
+        self.assertFalse((self.home / ".omp").exists())
+
+    def test_backlog_routing_survives_full_and_scoped_repeat_sync(self):
+        config = self.home / ".config/personal-backlog/cmux.json"
+        config.parent.mkdir(parents=True)
+        routing = {
+            "workspace_id": "11111111-1111-4111-8111-111111111111",
+            "window_id": "22222222-2222-4222-8222-222222222222",
+        }
+        for options in ((), ("--only-backlog",)):
+            with self.subTest(options=options):
+                config.write_text(json.dumps(routing))
+                result = self.run_sync(*options)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                installed = json.loads(config.read_text())
+                self.assertEqual({key: installed[key] for key in routing}, routing)
+                before = config.stat().st_mtime_ns
+                repeated = self.run_sync(*options)
+                self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+                self.assertEqual(config.stat().st_mtime_ns, before)
+
+    def test_backlog_routing_defaults_seed_missing_keys_but_not_explicit_null(self):
+        checkout = self.root / "checkout"
+        checkout.mkdir()
+        shutil.copyfile(ROOT / "sync.py", checkout / "sync.py")
+        shutil.copytree(ROOT / "integrations/personal-backlog", checkout / "integrations/personal-backlog")
+        shutil.copytree(ROOT / "skills/personal-backlog", checkout / "skills/personal-backlog")
+        shutil.copyfile(ROOT / "skills/POLICY.md", checkout / "skills/POLICY.md")
+        defaults = {
+            "workspace_id": "33333333-3333-4333-8333-333333333333",
+            "window_id": "44444444-4444-4444-8444-444444444444",
+            "summary_limit": 7,
+        }
+        (checkout / "integrations/personal-backlog/cmux.json").write_text(json.dumps(defaults))
+        config = self.home / ".config/personal-backlog/cmux.json"
+        fresh = self.run_sync("--only-backlog", checkout=checkout)
+        self.assertEqual(fresh.returncode, 0, fresh.stdout + fresh.stderr)
+        self.assertEqual(json.loads(config.read_text()), defaults)
+        config.write_text(json.dumps({"workspace_id": None, "summary_limit": 99}))
+        result = self.run_sync("--only-backlog", checkout=checkout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(config.read_text()), {
+            "workspace_id": None,
+            "window_id": "44444444-4444-4444-8444-444444444444",
+            "summary_limit": 7,
+        })
 
     def test_queue_without_tui_runtime_fails_without_installing_or_falling_back(self):
         self.home = self.root / "home with 'quotes' & ☕"

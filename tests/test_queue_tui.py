@@ -60,6 +60,29 @@ class QueuePilotTests(unittest.IsolatedAsyncioTestCase):
         # Let the actual polling timer consume source events and complete layout.
         await pilot.pause(0.2)
 
+    async def test_hover_brightens_cards_without_changing_selection(self):
+        app = self.app(Reader([task("A"), task("B")]))
+        async with app.run_test(size=(36, 18)) as pilot:
+            await self.settle(pilot)
+            await pilot.hover("#status")
+
+            def background(card):
+                # Sample rendered padding, not theme tokens or foreground text.
+                return next(iter(card.render_line(0).crop(1, 2))).style.bgcolor
+
+            for identifier in ("A", "B"):
+                with self.subTest(selected=identifier == app.state.selected_id):
+                    card = app.cards[identifier]
+                    resting = background(card)
+                    await pilot.hover(card, offset=(2, 0))
+                    await pilot.pause()
+                    hovered = background(card)
+                    self.assertGreater(sum(hovered.triplet), sum(resting.triplet))
+                    self.assertEqual(app.state.selected_id, "A")
+                    await pilot.hover("#status")
+                    await pilot.pause()
+                    self.assertEqual(background(card), resting)
+
     async def test_project_search_and_live_reassignment_keep_literal_identity(self):
         project = "[red]Café 界[/red]"
         item = task("A", "Project-specific commitment", project=project, labels=("blocked",))
