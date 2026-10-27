@@ -597,8 +597,8 @@ def main():
     scoped.add_argument("--only-backlog", action="store_true", help="Restore queue configuration and skill links only; no agent settings, native preferences, hooks or service activation")
     scoped.add_argument("--only-hermes", action="store_true", help="Install the Hermes lifecycle adapter and preserve its original launcher; no profile, consent, auth or native preference changes")
     scoped.add_argument("--only-browser", action="store_true", help="Configure a dedicated headless Chromium shell and explicitly download its runtime; no other agent or cmux changes")
-    scoped.add_argument("--only-designer", action="store_true", help="Install the personal UI/UX model adapter and retire its owned previous filename; no package installation, model settings, MCP or native changes")
-    scoped.add_argument("--only-workflows", action="store_true", help="Install portable workflows, skills, the OMP executor template and visual model adapter; retire owned obsolete links without changing model settings, MCPs, task data, hooks or active routines")
+    scoped.add_argument("--only-designer", action="store_true", help="Install the personal UI/UX model adapter; no package installation, model settings, MCP or native changes")
+    scoped.add_argument("--only-workflows", action="store_true", help="Install portable workflows, skills, the OMP executor template and visual model adapter without changing model settings, MCPs, task data, hooks or active routines; no obsolete-link retirement")
     args = parser.parse_args()
     try:
         sync(args.home.expanduser().resolve(), args.dry_run, args.only_backlog, args.only_hermes,

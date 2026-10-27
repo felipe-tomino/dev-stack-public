@@ -1,5 +1,13 @@
 # Changelog
 
+## Document cross-Mac synchronization and local reconciliation
+
+- Add a short root `AGENTS.md` that routes authorized Mac installation/synchronization requests to the README procedure; opening the repository grants no permission to change the machine.
+- Document ownership checks, private backups, full versus scoped sync, separate browser provisioning, fresh discovery and evidence-based completion. Keep the one-time known-leftover checklist in the README, not in permanent agent context or migration code.
+- Correct CLI help that still promised retired-filename and obsolete-link cleanup in scoped modes. Runtime behavior is unchanged.
+
+Verification: all three local links/heading anchors in the root instructions and synchronization documentation resolved. The actual `sync.py --help` command displayed the corrected scope descriptions. This documentation change did not synchronize or clean another Mac.
+
 ## Remove retired workflow migration code and local skills
 
 - Remove hardcoded retirement of `implement`, `grill-me` and the former `omp-designer.ts` filename, the old Hermes launcher fingerprint, and their migration-only tests. Keep generic managed-link ownership and protection against overwriting custom adapters and launchers.

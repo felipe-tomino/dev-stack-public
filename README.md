@@ -19,6 +19,36 @@ Full sync generates `~/.config/cmux/sidebars/workspaces-local.js`. On the real m
 
 Existing credentials, Claude account/project state, app-managed Codex MCPs/trust/notifications, and local permission settings remain local. Matching-endpoint MCP credentials are preserved; changed endpoints do not inherit them. Sync owns the names in the shared MCP catalog and removes unselected entries with those names from user-level MCP configuration. It leaves unrelated MCPs, skills and workspace files alone. A small local ownership record allows retirement of previously synced skill links and MCP names. Foreign destination symlinks or non-directory ancestors are refused before writes. File replacement is atomic per file, not an all-files transaction; native command failure is reported rather than silently ignored.
 
+## Sync another Mac and reconcile older installations
+
+Use this procedure when the user requests installation or synchronization on a Mac, including an existing installation that missed earlier cleanups. Reading this repository alone authorizes no machine changes. The current checkout describes the desired configuration, not a complete inventory of everything allowed in the user's home directory.
+
+### Reconcile and sync
+
+1. Confirm the requested destination and inspect the checkout for local changes. Update it to the intended revision without discarding local work. Check the prerequisites under [Sync this Mac](#sync-this-mac) and the integrations actually needed on that Mac; sync does not install all tools, dependencies or accounts.
+2. Inspect the local ownership record at `~/.local/state/dev-stack/managed.json`, installed instructions, skill links, extensions and relevant shell startup entries. Compare them with the current repository and the applicable changelog entries. Establish both origin and obsolescence before treating anything as a removal candidate; a matching filename or absence from the repository is not enough.
+3. Run `python3 sync.py --dry-run` from the checkout. Full sync retires obsolete links recorded as its own and reconciles owned MCP names; `--only-workflows` does not retire obsolete links. Neither mode is a general legacy cleanup. Resolve reported ownership conflicts rather than weakening checks or deleting the conflicting files blindly.
+4. For confirmed dev-stack leftovers covered by the requested reconciliation, make a private backup outside active discovery directories, then remove only those leftovers. Check native discovery roots for aliases to removed skills, including dangling links, without touching unrelated skills. Use non-recursive directory removal for empty remnants. Preserve customized or uncertain files and report the exact conflict for a decision. If cleanup was not authorized, obtain permission before deletion.
+5. Repeat the dry run after resolving conflicts, review its scope, then run `python3 sync.py`. Do not replace full sync with `--only-workflows` when runtime settings, MCPs or generic managed-link retirement are part of the request. Provision the [dedicated headless Chromium](#dedicated-headless-chromium) separately when browser automation is needed; full sync installs its configuration but does not download it.
+6. Verify the installed configuration and actual affected integrations, not just command success. Repeat `python3 sync.py --dry-run` and resolve unexplained planned file changes. Verify browser work through native OMP headless automation when in scope. Restart/reload the affected agents normally, with the user's permission before interrupting sessions, and inspect fresh skill discovery. Report changes, preserved conflicts, missing prerequisites and unverified behavior.
+
+Preserve credentials, personal browser profiles/caches, private assistant records, task data, histories and unrelated tools/configuration. Do not remove everything missing from Git, copy credentials between Macs, uninstall a project's test framework or reintroduce compatibility aliases, automatic legacy migrations or a second browser integration.
+
+**Complete when:** the requested configuration is installed, applicable confirmed leftovers are absent from fresh discovery, the repeat dry run has no unexplained planned file changes, and affected runtime checks have evidence. A clean dry run alone does not prove removal of unmanaged leftovers. Report unresolved ownership conflicts or unavailable runtime prerequisites instead of claiming complete synchronization.
+
+### Known leftovers from the executor simplification
+
+This is a one-time checklist for installations predating the executor/Puppeteer cleanup recorded in the changelog, not a permanent deletion allowlist. Inspect each item only if present and apply the ownership and backup rules above. Prune this checklist once the affected Macs have been reconciled; do not move it into the root agent instructions or `sync.py`.
+
+| Candidate | Reconciliation |
+| --- | --- |
+| Manually installed `handoff` and `two-axis-review` skill directories under `~/.agents/skills/`, and aliases in native skill roots | Remove confirmed retired copies and their aliases. Keep the canonical `code-review` skill and private assistant handoff records. |
+| Old `implement` and `grill-me` skill links | Let full sync retire recorded owned links; inspect any unrecorded copies or aliases separately. Their current replacements are the execution method and `grilling`. |
+| `~/.omp/agent/extensions/omp-designer.ts` | Compare with historical repository source and local ownership evidence. Retire only a confirmed unchanged old adapter; preserve a custom variant for a decision. The current adapter is `ui-ux-role.ts`. |
+| Empty directories under `~/.omp/agent/managed-skills/`, and an old designer package/extension registration if present | Remove confirmed empty remnants. Inspect actual plugin registries and ownership before removing a retired registration/package through its supported manager; preserve unrelated plugins and the current UI/UX adapter. |
+| A previous managed Hermes launcher at `~/.local/bin/hermes` | Current sync may refuse it. Compare with historical managed source and inspect the private preserved `~/.hermes/cmux-bridge/hermes-original`; restore a verified native entrypoint before installing the current adapter. Never delete the preserved original or rewrite a custom launcher blindly. A missing or unverified original is a blocker to this reconciliation. |
+| Old workflow-level Playwright instructions, registrations or shell exports | Retire only confirmed obsolete workflow-owned entries, preserving unrelated startup content. Keep project test dependencies, shared caches and personal browser state. Current automation uses native OMP Puppeteer and the dedicated executable. |
+
 ## Portable workflows and runtime roles
 
 The user's method lives outside native agent configuration. Assistance and execution have separate authorities:
