@@ -1,58 +1,11 @@
-# When to Mock
+# Dependency substitutes
 
-Read [SKILL.md](SKILL.md) and the repository testing contract first. Mock only approved **process boundaries**, such as external payment/email APIs or an out-of-process service where the suite permits a substitute.
+Use when a test needs to control a dependency. Follow the repository's permitted seams: prefer its real/emulated database and endpoint path, with substitutes at approved process boundaries such as external payment/email APIs.
 
-Prefer the established real/emulated database and endpoint path. Where required by repository rules, restrict mocks to process boundaries and use approved DAO/database assertions only after exercising the real/emulated endpoint. A database dependency is not automatic permission to mock a DAO.
+Do not mock owned in-process behavior or replace a required real/emulated path with a mocked DAO. Approved database assertions after a real endpoint remain valid; a database dependency alone does not justify a fake.
 
-Use the repository's approved controls for time/randomness or filesystem behavior rather than inventing broad mocks.
+Use existing controls for time, randomness and filesystem behavior. A substitute should drive a meaningful outcome, including boundary failures, rather than merely echo the expected result.
 
-Don't mock:
+Reuse the existing external contract. Where a real design need calls for injection, a function parameter can suffice; do not create an SDK, port or wrapper solely for mock convenience. Keep substitutes faithful to the relevant input, result, error and ordering guarantees.
 
-- Your owned in-process classes/modules
-- Internal collaborators, DAOs or repositories in a required real/emulated path
-- The behavior under test merely to echo a preselected return value
-
-## Designing for Mockability
-
-At genuine process boundaries, reuse established interfaces; don't introduce new injection layers or SDK abstractions solely for tests. When a real design need exists, these shapes can make a boundary easier to exercise:
-
-**1. Use dependency injection**
-
-Pass external dependencies in rather than creating them internally:
-
-```typescript
-// Easy to mock
-function processPayment(order, paymentClient) {
-  return paymentClient.charge(order.total);
-}
-
-// Hard to mock
-function processPayment(order) {
-  const client = new StripeClient(process.env.STRIPE_KEY);
-  return client.charge(order.total);
-}
-```
-
-**2. Prefer SDK-style interfaces over generic fetchers**
-
-When designing a genuinely needed external client, specific operations may be clearer than a generic fetcher. Preserve an existing client contract rather than adding a parallel SDK for test convenience:
-
-```typescript
-// GOOD: Each function is independently mockable
-const api = {
-  getUser: (id) => fetch(`/users/${id}`),
-  getOrders: (userId) => fetch(`/users/${userId}/orders`),
-  createOrder: (data) => fetch('/orders', { method: 'POST', body: data }),
-};
-
-// BAD: Mocking requires conditional logic inside the mock
-const api = {
-  fetch: (endpoint, options) => fetch(endpoint, options),
-};
-```
-
-The SDK approach means:
-- Each mock returns one specific shape
-- No conditional logic in test setup
-- Easier to see which endpoints a test exercises
-- Type safety per endpoint
+If the test can only prove interactions with its own fake, reconsider the seam. [tests.md](tests.md) illustrates outcome assertions; [SKILL.md](SKILL.md) owns the loop.

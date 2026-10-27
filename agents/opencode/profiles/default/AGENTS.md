@@ -1,8 +1,3 @@
-# Profile Instructions
+# OpenCode default profile adapter
 
-<!-- Add your custom instructions for this profile here -->
-<!-- These will be included when running `ocx opencode -p default` -->
-
-For personal commitment capture, status/blocker updates, completion evidence, morning briefs, or “what next”, read `~/.agents/skills/personal-backlog/SKILL.md`, the sole shared personal queue workflow. Queue access grants no new scope or side-effect permissions.
-
-Before UI testing, screenshots, or creating test tabs/workspaces, MUST read the **Focus preservation** section in `~/.agents/skills/POLICY.md`.
+Read `~/.agents/workflows/execution/AGENTS.md` as the user's execution workflow. This profile selects the executor role, including collaborator-only personal-backlog reporting. Its native instructions entry is configured by `opencode.jsonc`.

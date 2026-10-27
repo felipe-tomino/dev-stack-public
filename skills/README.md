@@ -1,29 +1,61 @@
-# Personal skills
+# Personal skills and consolidation inventory
 
-One editable skill source for OMP, Pi, Codex, Claude, OpenCode and Hermes. These are workflow preferences, not permission grants; mandatory repository instructions remain binding. [POLICY.md](POLICY.md) is the shared building policy. Native routing snapshots under `agents/` and common `guidance/AGENTS.md` point to the relevant shared skills.
+The user's [execution method](../workflows/execution/AGENTS.md) owns how work proceeds. [Engineering quality](POLICY.md) owns design/test quality; [common boundaries](../workflows/POLICY.md) own authorization, privacy, evidence and focus. [Assistance](../workflows/assistance/AGENTS.md) remains independent. Native adapters select roles and capabilities, not competing methods.
 
-The 14 building guides are `implement`, `grilling`, `grill-me`, `research`, `domain-modeling`, `codebase-design`, `prototype`, `diagnosing-bugs`, `tdd`, `code-review`, `pr`, `retro`, `writing-for-agents`, and `wait-what`. `writing` handles communication intended for use outside the chat and runs `no-ai-slop` internally before returning ready-to-use text. `no-ai-slop` also supports standalone voice-preserving editing and pattern detection.
+## Disposition
 
-`google-workspace` uses the locally authenticated `gws` CLI for Google Docs/Sheets reads and edits, Drive metadata discovery, and Gmail reading/draft creation. Gmail drafts remain unsent unless the user explicitly approves sending; the required `gmail.compose` scope also technically permits sending. It is original agent-neutral guidance maintained here; binary installation and OAuth setup are documented in the checkout's [Google Workspace section](../README.md#google-workspace). Credentials remain local.
+This inventory records the consolidation decisions; it is human-facing reference, not another document agents must load before working.
 
-`personal-backlog` is the sole workflow for the central personal queue: capture authorized commitments, preserve edits/evidence, update progress and blockers, complete with proof, and plan the day. Agents use `~/.local/bin/work-queue`, independent of project cwd. Native Backlog commands and permission boundaries are documented in the skill; the old queue-root `AGENTS.md` only points here. Queue data stays outside this repository.
+| Existing piece | Decision | Responsibility after consolidation |
+| --- | --- | --- |
+| `implement` | Merge and remove wrapper | Outcome, investigation, risk, change, proof and finish live directly in the execution method. |
+| `grill-me` | Merge and remove wrapper | Explicit challenge/interview routes directly to `grilling`. |
+| `research` | Keep, focus | Resolve an unknown contract/feasibility question using primary evidence; stop when the decision is supported. |
+| `diagnosing-bugs` | Adapt | A symptom-specific loop, falsifiable probes and measured results; no mandatory phase ceremony for a proven cause. |
+| `domain-modeling` | Keep, focus | Business meaning, ownership, transitions, transaction/concurrency invariants; no compulsory glossary or DDD layers. |
+| `codebase-design` | Adapt | Consequential responsibility/interface/dependency questions; principles on demand, not a glossary/diagram lesson. |
+| `prototype` | Adapt | The smallest runnable experiment that settles a decision; no compulsory HTML app, variant switcher or production rewrite. |
+| `tdd` | Adapt | One meaningful red/green slice when requested, required or useful for actual uncertainty; not a test for every edit. |
+| `code-review` | Adapt | Pinned affected flow, separate Standards/Spec axes; one fresh reviewer can cover both when risk warrants independent context. |
+| `pr` | Adapt | Required repository template, grounded evidence and shared writing; no diagram catalog or automatic publication. |
+| `retro` | Keep, focus | Explicit session-evidence-backed recommendations; no automatic instruction or environment edits. |
+| `grilling` | Canonical explicit discipline | Resolve material decision branches without turning normal implementation into an interview. |
+| `wait-what` | Keep, focus | Repair an explicitly confusing explanation without reopening the task. |
+| `writing-for-agents` | Adapt | Single authority, conditional pointers and evidence-backed pruning; compare strategy changes without benchmarking routine wording edits. |
+| `writing` | Keep shared | Reusable communication with factual/ownership boundaries and its existing prose pass. |
+| `no-ai-slop` | Keep shared | Voice-preserving prose editing/detection; not a second engineering reviewer. |
+| `google-workspace` | Keep shared | Personal Docs/Sheets through a read-only MCP; account-verified `gws` for other authorized work. No role or permission escalation. |
+| `personal-backlog` | Keep shared role split | Assistant managers manage authorized commitments; executors append reports to existing tasks. |
+| `visual-design` | Keep minimal | All UI/UX decisions and tasks use Opus 5.5 High; a short guide uses UXPeak advice and Mobbin references without a local/full workflow split. |
+| Vendor's 12 designer skills and read-order gate | Remove from active workflow | Useful concerns are expressed in `visual-design`; no compulsory skill bundle, emotion question, palette CSV or docs trio. |
+| Personal OMP UI/UX adapter | Keep independent | Model/effort selection, restoration, cancellation, session-local manual pin and context lifetime only; no external designer package. |
+| Native executor instructions | Keep thin | Select the same method in OMP, Codex, Claude Code, Pi and OpenCode; expose actual native capabilities. |
+| OMP executor template | Adapt native base prompt | Preserve live tool/skill/rule catalogs while the portable method owns process; no competing bundled delegation or cleanup recipes. |
+| Executor strategy comparison | On demand | Replay actual affected tasks before/after a strategy change; no routine evaluation stage or installed framework. |
 
-## Loading
+The result is 17 active skills: 12 focused execution disciplines, four shared capabilities and one visual discipline. Fewer files is not the target; each retained entry has a distinct trigger and finish condition.
 
-Read `~/.agents/skills/<name>/SKILL.md` with the runtime's native file-reading tools; resolve relative assets against that skill's directory. `sync.py` links these directories and supporting root files into `~/.agents/skills`, and the same skill directories into `~/.claude/skills`. OMP and Pi use the configured shared directory; Codex uses native shared discovery; Claude uses its native directory. Start a fresh session after syncing or changing discovery configuration.
+## Reference decisions
 
-The personal Backlog integration additionally links `personal-backlog` into OMP/Pi/OpenCode and both Hermes profiles' native skill roots. Its scoped restore also installs the shared policy dependency. `sync.py --only-backlog` installs this integration without applying the rest of the stack.
+- [Matt Pocock's skills](https://github.com/mattpocock/skills): retain vertical behavioral tests, focused disciplines, explicit challenges and progressive disclosure; remove the extra implementation/interview wrappers and mandatory composition.
+- [p-stack](https://github.com/backnotprop/pstack), especially [verification](https://github.com/backnotprop/pstack/blob/main/docs/guide/06-verify-and-ship.md) and [personal adaptation](https://github.com/backnotprop/pstack/blob/main/docs/guide/09-make-it-yours.md): retain observable finish conditions, actual-artifact proof and situational guidance. Do not import its full playbook framework, automatic PR/commit/shipping steps, model panels or scheduled skill maintenance.
+- [Ponytail](https://github.com/DietrichGebert/ponytail/blob/main/AGENTS.md): retain reading the affected flow before changing it and choosing existing/platform capabilities before new machinery. Completeness, safety and maintainability remain constraints; do not adopt code golf, a smaller unspecified deliverable or a permanent test merely because a branch exists.
+- [Rob Shocks, Anthropic Says Delete Your Subagents](https://youtu.be/KwmrSON2n-g) and [Anthropic's underlying guidance](https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop): keep work needing shared memory in the principal; retain workers for independent research, noisy context, fresh review or genuine restricted-tool boundaries. Compare outcomes before folding a worker or retiring a guardrail; shorter prompts alone do not prove savings. The [comparison guide](../workflows/execution/EVALUATION.md) is conditional, not a coding pipeline.
 
-Request a guide by name or read its file. Slash commands and hiding behavior differ by runtime; [writing-for-agents/SKILL-MECHANICS.md](writing-for-agents/SKILL-MECHANICS.md) records the limits. Explicit-only workflows need current task authorization even when their files are readable. No pack-specific tool, tracker, plugin, updater, or runtime version is required.
+These are manually adapted ideas, not newly installed plugin dependencies, copied upstream modes or an update contract. No claim is made that upstream benchmarks apply to this workflow.
 
-For example, ask “Use writing to draft this update for Slack” or “Use no-ai-slop to audit this draft without rewriting.” `writing` returns the communication only unless an edit report is requested; standalone `no-ai-slop` editing includes **What changed**. Neither authorizes sending or publishing.
+## Loading and installation
 
-## Sources
+Read `~/.agents/skills/<name>/SKILL.md` with native file tools; expand `~` and resolve sibling references against the skill directory. Native invocation differs by runtime; [skill mechanics](writing-for-agents/SKILL-MECHANICS.md) owns discovery/visibility details. Reuse current guidance rather than rereading it by ritual.
 
-Building guides are personal adaptations of [Matt Pocock's skills](https://github.com/mattpocock/skills), originally imported from revision `49dd158d1076134a641b33efb035946536778336`. [manifest.json](manifest.json) and frontmatter preserve historical source paths, revision, and original hashes for attribution and comparison, not an installation lock or update contract. [LICENSE](LICENSE) and [pr/CREDITS.md](pr/CREDITS.md) retain attribution. [no-ai-slop](no-ai-slop/README.md) retains Peter Yang's source, license, and assets. Review and port useful upstream changes manually without overwriting personal adaptations.
+`sync.py --only-workflows` installs portable authorities, skills, the OMP executor template and the independent personal UI/UX adapter. It retires only recorded obsolete wrapper links and the owned previous adapter filename, preserving unrelated ownership. It refuses competing/custom OMP prompt files before writes. It does not manage npm plugins or change model settings, MCPs, task data, active routines or native hooks. Restart OMP after template/discovery/extension changes; resume the existing conversation if desired.
 
-[`writing`](writing/SKILL.md) is original guidance maintained here, with portable shared-file reads. Its earlier development history is not included in this public snapshot.
+`sync.py --only-designer` installs only the model adapter and its portable visual/common dependencies; no npm package or Node validator is needed. `sync.py --only-backlog` retains the central queue integration and common policy without installing execution methodology. Shared writing, prose editing, Google Workspace and backlog import only common policy and remain available to assistance.
 
-Earlier isolated-home verification resolved the original 15 skills through OMP's native reader, Pi's RPC command discovery, Codex's app-server skill discovery, and Claude's normal control initialization. Adding `writing` brought the pack to 16 skills; `google-workspace` brings it to 17. The actual writing sync resolved `writing` and `no-ai-slop` plus their dependencies in both shared and Claude roots, installed the shared routing, and made zero changes on repeat. Workspace setup verified fresh OMP reads, Pi RPC discovery, Codex app-server discovery, and Claude control initialization without model prompts, plus live authenticated Doc/Sheet reads and targeted edits on disposable files. Discovery does not guarantee model compliance or application correctness.
+The native Hermes profiles select portable assistant roles; OMP, Pi, Codex, Claude Code and OpenCode currently select executor roles. A different runtime can host either role through an appropriate separate native profile, without changing the method. Tool availability is not equivalent across runtimes and does not grant side-effect authority.
 
-`personal-backlog` brings the pack to 18 skills. A fresh native OMP reader resolves it; installed sessions may retain an older discovery inventory. Its capture/update/completion procedures use the real Backlog CLI rather than a separate tracker or cmux checklist.
+## Attribution
+
+The original building guides were adapted from Matt Pocock revision `49dd158d1076134a641b33efb035946536778336`. [manifest.json](manifest.json) retains historical source paths/hashes, including disposition of removed wrappers; those records are attribution, not active installation entries or version locks. [LICENSE](LICENSE) and [pr/CREDITS.md](pr/CREDITS.md) retain upstream notices. [no-ai-slop](no-ai-slop/README.md) retains its separate source, license and assets. Review useful upstream changes manually rather than overwriting the personal method.
+
+`writing`, `google-workspace`, `personal-backlog` and `visual-design` contain original guidance maintained here. Google Workspace installation/authentication and the queue runtime remain documented in the repository README; credentials and live queue data stay local.

@@ -1,6 +1,6 @@
 # Good and Bad Tests
 
-Apply [SKILL.md](SKILL.md) and the repository testing contract first. Extend its existing suite. Keep tests for meaningful behavior, invariants, guards and transformations; avoid plumbing/copy/type tests and mock echoes.
+Examples for choosing behavioral assertions in an established suite. [SKILL.md](SKILL.md) owns the TDD loop; repository testing contracts own the permitted real/emulated path.
 
 ## Good Tests
 

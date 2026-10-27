@@ -6,7 +6,7 @@ metadata:
   variant: personal-shared
 ---
 
-Read `~/.agents/skills/POLICY.md` before applying this skill. It governs personal workflow; mandatory repository rules remain binding.
+Read `~/.agents/workflows/POLICY.md` before applying this skill. It governs shared scope, evidence and permission boundaries without assigning an assistance or execution role.
 
 # Writing
 

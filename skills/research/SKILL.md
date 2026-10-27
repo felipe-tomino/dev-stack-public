@@ -7,12 +7,11 @@ metadata:
   variant: personal-shared
 ---
 
-Read `~/.agents/skills/POLICY.md` before applying this skill. It governs personal workflow; mandatory repository rules remain binding.
+Read `~/.agents/skills/POLICY.md` unless already current. The execution method owns scope and verification; this discipline supplies evidence for an unresolved decision.
 
-1. Frame the concrete question and what decision the answer changes. Use existing task and repository context; ask only for material missing intent that tools cannot resolve.
-2. Investigate **primary sources**: official documentation, source code, specifications and first-party APIs. Follow each consequential claim to the source that owns it. Prefer the relevant version and date; secondary write-ups are leads, not final authority. Cite source URLs or repository paths and relevant locations with claims.
-3. Read static sources with available native file or URL tools; use search to discover unknown sources, and browser only when needed. Inspect code before speculating about behavior. Retry incomplete evidence through another relevant source instead of treating plausibility as proof.
-4. Work inline unless a useful independent slice can run in the background while other work continues. Scope before delegation; use native read-only delegation when available and appropriate for exploratory repository research. Give the slice a concrete question, source constraints and expected evidence. Do not spawn just to perform a lookup or sit idle after outsourcing the whole question.
-5. When behavior is uncertain and an experiment is relevant and authorized, use a small runnable experiment against the real interface. Record inputs, command, environment/version and actual output so it is reproducible. Don't claim an unrun experiment worked, modify production state, or add permanent scaffolding solely for research.
-6. Separate **facts** (source-backed contracts), **observations** (what a particular experiment showed), and **inferences** (reasoned conclusions with assumptions). Surface contradictory sources, limitations and unanswered questions; recommend the decision the evidence supports.
-7. Return terse findings in chat by default. Write a durable note only if explicitly requested or an actual durable decision justifies one under the repository's existing convention. Update the existing decision/documentation authority rather than creating competing Markdown notes. No mandatory artifact, tracker, setup, or tracker update is part of research.
+1. Frame the question and the decision its answer changes. Inspect relevant code and contracts before searching outside the repository.
+2. Follow consequential claims to primary sources: version-matched official documentation, specifications, source code or first-party APIs. Use search to discover sources and secondary articles as leads. Cite URLs or repository locations alongside claims; surface conflicting or outdated evidence.
+3. Where source inspection cannot settle behavior, use the smallest authorized experiment against the real interface. Keep inputs, environment/version, command and observed result reproducible. Research stays read-only unless the task authorizes implementation; an isolated experiment must not mutate production state.
+4. Separate source-backed facts, experimental observations and inferences. Recommend the decision the evidence supports, naming assumptions and remaining uncertainty.
+
+**Complete when:** the question is answered with traceable evidence, or reachable investigation is exhausted and the exact missing prerequisite is identified. Return findings in chat unless an existing durable decision/documentation authority needs an authorized update; no research artifact is required.

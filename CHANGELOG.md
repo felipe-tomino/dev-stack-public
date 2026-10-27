@@ -1,5 +1,132 @@
 # Changelog
 
+## Remove retired workflow migration code and local skills
+
+- Remove hardcoded retirement of `implement`, `grill-me` and the former `omp-designer.ts` filename, the old Hermes launcher fingerprint, and their migration-only tests. Keep generic managed-link ownership and protection against overwriting custom adapters and launchers.
+- Stop generating `automation.socketPassword` for cmux-only access. Preserve existing credentials, explicitly cleared passwords and private automation fields.
+- Remove the manually installed local `two-axis-review` and `handoff` skills and the empty former designer skill directories. Keep the canonical `code-review` skill, current UI/UX adapter, Hermes integration and private assistant records. Add no compatibility aliases or replacement migrations.
+- Synchronize the installed OMP context adapter with its existing native Puppeteer/headless policy.
+
+Verification: 43 sync tests passed; one native cmux/Codex integration case was skipped because the required executables were not both available. An isolated CLI smoke used a home path containing spaces, a quote and Unicode: fresh sync generated no password, repeat sync planned no changes, and existing credentials/private automation fields survived. The installed Hermes wrapper executed a preserved `/usr/bin/printf` entrypoint and refused a custom launcher; live Hermes was not exercised. Local workflow sync updated only the OMP context adapter, then planned zero changes. The removed local skill directories and empty designer tree are absent.
+
+## Simplify executor browsing to native OMP Puppeteer
+
+- Replace the global Playwright requirement with the executor's native headless browser. The OMP adapter selects its existing Puppeteer-backed Eval integration; project instructions alone own test commands, framework dependencies and browser setup.
+- Enable OMP's native browser with headless mode; disable relay, Tern and cmux routing and remove the configured CDP endpoint. Preserve the manual-only system-default-browser exception and separation from personal profiles.
+- Remove the global Playwright setup instructions, executable export, legacy export migrations and their obsolete test. Do not retain compatibility shims or alter project dependencies/shared browser caches.
+- Provision the existing dedicated Chromium launcher. Its environment supplies the executable and disables inherited OMP relay/Tern overrides; it does not configure a project test runner.
+
+Verification: the native OMP 18.12.6 SDK exercised the real Eval browser prelude with Chromium 158.0.8127.0 (snapshot 1727255). A default open selected the hidden headless backend without app overrides; native helpers filled/submitted a local form and captured an inspected screenshot. Process arguments contained `--headless`, and a separate native Puppeteer context did not inherit the first context's cookies or local storage. The managed tab was released. The updated sync suite passed 47 cases with one environment-dependent skip. No personal browser or provider inference was used.
+
+## Use Playwright headless for executor browser work
+
+- Make the execution method the authority for headless Playwright, isolated browser state and a manual-only system-default-browser exception. Cover visual checks, authentication handoffs and missing-runtime behavior; do not let a personal login imply authentication in the headless context. Link visual verification to that policy. Optional assistants remain outside the execution method.
+- Disable OMP's native Puppeteer browser eval helper in tracked and installed settings. Its Tern/cmux routes could select visible surfaces despite `headless: true`; removing the helper preserves `eval` and leaves Playwright as the instructed automation route. New OMP processes reload the catalog.
+- Document matching bundled-browser setup separately from the optional dedicated Chromium launcher. The configured launcher had no provisioned browser, and the old npm-cached Playwright package expected a different revision from the existing browser cache. Install Playwright 1.64.1 and its matching headless shell without changing project dependencies or deleting other cached browsers.
+
+Verification: real Playwright 1.64.1 / Chromium 156.0.8078.4 opened a loopback page, filled and submitted its form, observed the resulting text, captured a PNG and confirmed that a second context had neither the first context's local storage nor cookies. Browser command-line introspection confirmed `--headless` and a temporary Playwright profile. Native offline OMP startup probes advertised the Puppeteer helper when enabled and omitted it when disabled, retaining `eval` in both cases; the installed CLI reports `browser.enabled = false`. All five installed executor adapters resolve the common method. The sync suite passed 48 cases with one environment-dependent skip. No personal-browser session was opened or automated, no human authentication flow was exercised and no model-compliance claim is made.
+
+## Align executor instructions with shared-context execution
+
+- Scope the execution method to coding executors. Main Assistant and Engineering Lead remain optional parallel assistants; their instructions and settings are unchanged.
+- Keep coupled investigation, implementation and verification in the principal. Delegate bounded independent work, noisy research, consequential read-only review or a real restricted-tool boundary. Different files, specialties and model choices do not establish independence; one researcher or reviewer can be justified.
+- Install `agents/omp/SYSTEM_TEMPLATE.md` through OMP's native template route. Replace the bundled base prompt's competing delegation and cleanup recipes while retaining live tool, URL, skill and rule catalogs plus native project/append/safety context. No prompt-string rewriting, binary changes or plugin installation.
+- Refuse competing user `SYSTEM.md`, custom regular templates and unrelated destination symlinks before sync writes. Full and workflow-scoped sync manage the template; existing scoped model/MCP/assistant/routine preservation remains intact.
+- Clarify single-reviewer Standards/Spec coverage and evidence-based instruction pruning. Add an on-demand strategy comparison guide; ordinary coding and wording edits do not acquire an evaluation stage.
+
+Verification: Python 3.12 ran 49 sync safety cases: 48 passed and the environment-dependent native cmux/Codex case skipped. All 17 native UI/UX lifecycle cases passed. Native OMP 18.12.6 rendered the new template with the same discovered skills and tool names/descriptions as the baseline; competing parallelism and unconditional docs recipes were absent. Fresh template discovery loaded all 17 shared skills without the retired designer entry. Native rendering retained supplied repository context, append context and safety-prelude content; an actual restricted SDK session exposed only `read`. The real scoped CLI wrote nothing in dry run, installed into a quoted Unicode-containing home and made zero changes on repeat.
+
+Applied the scoped installation locally: three paths changed, then zero on repeat. Eleven protected runtime/MCP/assistant configuration fingerprints stayed identical. Existing portable method and skill links expose the edits directly; running OMP processes need a restart to reload template/discovery state and may resume their conversation. No user session was restarted, permission broadened, live task/routine changed or provider inference run. These checks establish installation and native context behavior, not model compliance, productivity or cost improvements.
+
+## Separate personal-browser tasks from implementation verification
+
+- Allow the personal browser for requested tasks such as Google OAuth and authenticated browsing. Do not use personal tabs or the personal browser for implementation tests/validation; keep those in agent-owned isolated/headless browsers.
+- Preserve focus/screenshot permission boundaries. General browser access does not authorize testing in the user's personal session.
+
+## Configure personal Google Docs/Sheets MCP
+
+- Install community `workspace-mcp` 2.2.0 in an isolated uv/Python environment and add `google-personal` to the common MCP catalog and local OMP config. Limit it to core Docs, Sheets and Drive tools in read-only mode; do not connect Gmail or Calendar.
+- Isolate the personal OAuth client and credential store under `~/.config/workspace-mcp-personal`, outside Git. Preserve existing MCP definitions, model settings, assistant profiles and routines. Do not reuse another account's login.
+- Render `@HOME@` paths in the shared MCP catalog with the existing source renderer, including command, working directory and credential paths. Other native client files remain unchanged locally.
+- Route personal Docs/Sheets work through the read-only MCP when available; retain account-verified `gws` guidance for separately authorized work. Disclose Drive's broader read scope and authorize only the intended personal account.
+
+Verification: the real server initialized and exposed six read-only tools through both the MCP SDK and OMP's native MCP client. The installed scope resolver selected only Docs/Sheets/Drive read-only and basic identity scopes. The sync suite completed with 47 passes and one environment-dependent cmux/Codex skip. Full sync in a quoted Unicode-containing isolated home wrote nothing in dry run, rendered destination-specific paths and changed zero files on repeat. Existing MCP definitions and protected settings retained their fingerprints. Personal OAuth then completed after adding the account as a test user. Live checks verified the Google account identity, an authenticated MCP Drive search and minimal metadata reads through both the Docs and Sheets APIs for existing owned files. No document/cell contents were retrieved and no files were changed. Private client/credential files use mode `600` and the credential directory uses mode `700`; the selected email remains local. No full sync was applied to the real account.
+
+## Prefer a principal executor and reduce OMP background overhead
+
+- Disable model-authored async widgets, periodic subagent completion estimates and title refresh on replanning in the tracked and installed OMP config. Keep background execution, native planning and goal capabilities; planning does not start automatically.
+- Disable nine selected TypeScript convention rules, retaining TTSR, the other bundled safeguards and all Go/Rust rules. Project conventions own stylistic choices; type-boundary validation, meaningful tests and complete cutovers remain engineering requirements.
+- Make the principal the default for bounded/cohesive work. Delegate for substantial independent parallel slices, context isolation or fresh risk-proportional review; no standing team, agent-per-skill routing or mandatory specialist pipeline.
+- Keep UI/UX in the principal with the configured Opus 5.5 High role. A designer worker requires a substantial separable deliverable, not merely a model switch. Engineering Lead coordinates the selected principal rather than managing a standing worker roster.
+
+Verification: all 48 sync safety tests and 17 native lifecycle regressions passed. An isolated native OMP process loaded the installed config, checked the selected changes against a private pre-change backup, resolved 13 configuration/instruction paths, selected `anthropic/claude-opus-5-5:high` and restored the prior model/effort without inference. Workflow-scoped sync wrote nothing in dry run and changed zero paths on repeat in a quoted Unicode-containing isolated home. Native effective settings read back the three disabled automations and nine excluded rule names. Protected model/MCP/assistant/routine settings and the existing AutoQA denial were preserved; no user session was restarted.
+
+## Remove the external designer package
+
+- Uninstall `omp-designer` through OMP's native plugin manager. Remove its inactive persisted toggle, skill gates, traces and empty runtime directories; retain the personal guide, Opus 5.5 High role and existing MCP configuration.
+- Name the independent personal extension `integrations/omp-ui-ux/extension.ts`, installed as `~/.omp/agent/extensions/ui-ux-role.ts`; rename its native lifecycle suite to `test_omp_ui_ux.py`.
+- Remove package fixtures, vendor-link migration and plugin-lock mutation from sync. Retire the previous personal adapter filename only when its recorded ownership hash matches; back it up privately, refuse custom replacements/symlinks before writes, and prevent duplicate extension loading across scoped/full upgrades.
+- Clarify that restarting OMP and resuming the existing conversation loads the installed extension without requiring a new conversation. Running processes are not restarted automatically.
+
+Verification: all 48 sync safety tests and 17 native lifecycle regressions passed. The actual isolated sync CLI wrote nothing in dry run and made zero changes on repeat in a quoted Unicode-containing home. A native OMP smoke loaded the renamed installed adapter, selected exactly `anthropic/claude-opus-5-5:high`, read the installed guide and restored the previous model/effort, without inference or live credentials. Native plugin listing is empty. Applied the two-path local filename migration with a private backup, then observed zero changes on repeat; protected model/MCP settings, assistant profiles and routines retained their fingerprints. Existing agent conversations were not restarted or deleted.
+
+Read-only runtime comparison confirmed local Pi 1.0.2 exposes native MCP commands and lists `anthropic/claude-opus-5-5` in its offline model catalog. Correct the current MCP setup note; earlier verification records remain historical. No Pi inference, authenticated MCP-health check, runtime migration or provider-credential transfer was performed.
+
+## Keep the designer small and use Opus for all UI/UX
+
+- Replace the localized/full visual branches with one short UI/UX guide. Advice-only questions, UX decisions and small visual adjustments use the same configured Claude Opus 5.5 High role as screens and flows.
+- Reuse the existing OMP model/lifecycle adapter rather than adding a subagent framework. Enter before design reasoning, finish before non-UI/UX work, and retain restoration, cancellation, automatic-thinking and session-local pin safeguards. Respect explicit per-task model choices.
+- Name UXPeak as usability guidance and Mobbin as visual-pattern support. Inspect images and cite canonical screen links when presenting references; no mandatory search for every small correction, extra questionnaire, skill bundle or planning documents.
+
+Verification: all 17 native lifecycle regressions passed. An isolated native OMP smoke selected exactly `anthropic/claude-opus-5-5` at `high`, read the installed guide and restored the previous model/effort, without provider inference. Real UXPeak guidance and Mobbin search requests both returned successfully. Applied the scoped designer update locally (two files, private backups), then observed zero changes on repeat; model/MCP settings, assistant profiles and routines retained their fingerprints. The configured role and endpoints already matched the request. No agent restart, product-screen implementation or live task operation was performed.
+
+## Consolidate the personal execution and visual method
+
+- Make `workflows/execution/AGENTS.md` the single execution method, with consequence-based rigor, explicit finish conditions, bounded autonomy and on-demand disciplines. Keep assistance and backlog role boundaries unchanged.
+- Record a per-piece inventory and reference decisions in `skills/README.md`. Merge/remove `implement` and `grill-me`; retain canonical explicit `grilling` and focused research, domain, design, debugging, TDD, review, prototype, PR, retro, explanation and instruction-authoring guidance.
+- Remove compulsory HTML logic prototypes, variant switchers, unconditional production rewrites, repeated review-agent prompts and PR diagram catalogs. Preserve actual domain/concurrency, authorization, test and review contracts.
+- Add portable `visual-design` with localized versus full visual work. Replace the vendor-wrapping OMP extension with model/lifecycle routing only; no package/Node dependency, all-12 read gate, questionnaire, palette CSV, docs trio or source-pattern validators.
+- Keep `/designer` as an explicit session-local pin. Preserve automatic restoration and pending/failing transition safety, main-session isolation and removal of only expired owned developer-context blocks.
+- Extend scoped installation to migrate the personal adapter and retire only recorded obsolete wrapper/vendor links. Preserve the vendor package, unrelated ownership, model/MCP settings, task data and active routines; disable duplicate vendor autoload when present.
+
+Verification: all 46 sync safety tests and 17 native OMP lifecycle tests passed. Three added regressions failed before fixes and passed afterward: automatic-thinking preservation, failed-restoration admission through the real extension runner, and branch-local pin/snapshot lifetime. Native reads resolved all 17 skills through `skill://` plus method/policy/native selectors (27 paths), and the installed adapter registered without the vendor package. The actual workflow CLI wrote nothing in dry run and made zero changes on repeat in a quoted Unicode-containing isolated home. No provider inference was used. System Python 3.9 used a temporary pip-vendored TOML module; the supported prerequisite remains Python 3.11+.
+
+Applied the workflow-scoped cutover locally: 24 paths updated/retired with private backups, then zero changes on repeat. Fingerprints remained unchanged for 14 protected runtime/assistant/task paths and all 72 installed vendor files. Existing agent sessions were not restarted; task state, active routines, chosen models and MCP settings were not changed. This verifies installation/lifecycle behavior, not cross-model productivity or universal instruction compliance.
+
+## Separate portable assistance and execution workflows
+
+- Extract Main Assistant, Engineering Lead and executive-assistance behavior into `workflows/assistance/`, independent of Hermes. Keep Hermes SOULs and skills as native role, private-record, messaging, scheduler and transport adapters; remove duplicated profile proxy procedures.
+- Move executor routing into `workflows/execution/AGENTS.md` and attach it through thin OMP, Codex, Claude Code, Pi and OpenCode native entrypoints. Preserve the installed OMP designer behavior.
+- Separate common authorization, evidence, privacy and focus boundaries from execution-only building policy. Shared writing, Google Workspace and backlog skills no longer import implementation methodology into assistance.
+- Keep one backlog authority with disclosed manager and collaborator procedures. Both assistant roles manage authorized commitments; executors append reports/references to existing tasks without management-state mutations.
+- Add `sync.py --only-workflows` for instruction/skill updates without runtime settings, MCPs, task data, hooks or active schedule changes. Preserve preflight safety, private backups, scoped ownership and repeat-safe installation.
+
+Verification: 45 sync safety tests and 15 native designer tests passed. The actual scoped CLI completed a dry run with no writes, installed in a quoted Unicode-containing isolated home and made zero changes on repeat. Native OMP read 19 installed instruction/skill paths without provider inference. System Python 3.9 used a temporary pip-vendored TOML compatibility module; the supported prerequisite remains Python 3.11+. No live task or active scheduler mutation, agent restart, message delivery or focus change was performed.
+
+Applied the scoped workflow update locally: 25 paths updated, 13 protected runtime/task/record paths retained their fingerprints, and repeat sync changed zero paths. Read back the installed OMP and both Hermes role selectors. Independent review's declaration-metadata finding was corrected and exercised through both scoped/full isolated sync; the final 45-test sync suite passed with the metadata-preservation assertion.
+
+## Route visual work through the configured designer
+
+- Add automatic main-session routing through the `designer` start/finish tool. The agent selects `@designer` for substantive visual work and restores the original model and thinking before nonvisual work; backend-only requests and designer-setup discussions stay on the normal route.
+- Keep automatic stages private to the session. Preserve explicit `/designer` pinning, persisted manual state, MCP configuration and vendor skills. Reuse the shared skill gate and vendor validators.
+- Restore on terminal completion, cancellation and session transitions. Retain cleanup ownership after a failed rollback and wait for pending model/effort restoration before preparing the next request.
+- Accept the reader's raw-range selectors without granting full-file coverage to a single raw line. Remove only expired automatic-stage instructions from provider context; retain user content, peer-extension instructions and persisted history.
+
+Verification: real provider turns kept a backend investigation on `gpt-6.1-sol:medium`, automatically selected `claude-opus-5-5:high` for a visual critique, and restored the normal model before reading the backend file in a mixed request. The mixed run completed without tool errors. Cancelling immediately after designer entry and submitting a backend request retained the normal model/effort without leaking designer skill reads or errors. No manual toggle was needed.
+
+Regression checks: 15 isolated native OMP tests passed, including real model selection, native file reads, validator acceptance/refusal, raw-line coverage, manual takeover, session transitions, rollback failure, restoration ordering and instruction lifetime. Sync safety checks passed with one optional native-CLI skip. Native regressions use no provider inference or live credentials; the separate workflow smoke used the configured providers. No user agent was restarted, UI built, screenshot taken or MCP health check performed.
+
+## Repair OMP designer role and skill gate
+
+- Add `sync.py --only-designer` to install a local adapter for the existing `omp-designer` package, retain vendor assets, and disable duplicate plugin autoload. Preserve model roles, MCP configuration, credentials and unrelated extensions.
+- Select the configured `@designer` model and thinking level when enabled; restore the previous selection when disabled in the same session.
+- Route required skill reads to their vendor files with exact raw ranges. Reconcile physical EOF with the gate's trailing-newline count, canonicalize workspace paths without losing native context getters, and stop permanent-order diagnostics from looping.
+- Run vendor validators through a managed Node executable alias rather than the compiled OMP binary. Preserve gate enforcement and restore `process.execPath` synchronously before returning from the vendor stop handler.
+
+Verification: on OMP 18.12.6 with `omp-designer` 4.1.0, real RPC commands switched from `gpt-6-luna:medium` to the configured `gpt-6.1-sol:high` and restored the original selection. A real model turn read all 12 skills, including paginated continuations, with no read or extension errors; the gate reported `ready: true`, `phase: done`, no missing skills and no order violation. A native throwaway harness verified write blocking before coverage, gate opening afterward, real validator success/failure, executable restoration and non-looping order errors. Repeated scoped setup planned zero changes.
+
+Regression checks: 42 sync safety tests passed; one optional native-CLI check was skipped. The system Python 3.9 used a temporary pip-vendored TOML compatibility module for verification; the documented sync prerequisite remains Python 3.11+. No global Python installation, user-agent restart, UI build or MCP health check was performed.
+
 ## Provision dedicated headless Chromium
 
 - Add `sync.py --only-browser` to install private browser-management dependencies and an unbranded Chromium snapshot through the public Puppeteer browser installer. Normal sync remains configuration-only; dry run performs no installs.

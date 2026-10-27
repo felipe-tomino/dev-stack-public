@@ -12,20 +12,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-LEGACY_HERMES_LAUNCHER = '''#!/bin/sh
-# dev-stack Hermes lifecycle adapter; native cmux and hook consent stay unchanged.
-adapter=@HOME_SHELL@/.hermes/cmux-bridge/cmux
-if [ -n "${CMUX_SURFACE_ID:-}" ] && [ "${CMUX_HERMES_AGENT_HOOKS_DISABLED:-}" != 1 ]; then
-    native="${CMUX_HERMES_NATIVE_CLI_PATH:-${CMUX_BUNDLED_CLI_PATH:-}}"
-    if [ -z "$native" ]; then native="$(command -v cmux 2>/dev/null || true)"; fi
-    if [ "$native" != "$adapter" ] && [ -x "$native" ] && [ -x "$adapter" ]; then
-        export CMUX_HERMES_NATIVE_CLI_PATH="$native"
-        export CMUX_BUNDLED_CLI_PATH="$adapter"
-        export CMUX_HERMES_AGENT_PID="${CMUX_HERMES_AGENT_PID:-$$}"
-    fi
-fi
-exec @HOME_SHELL@/.hermes/cmux-bridge/hermes-original "$@"
-'''
 
 
 class SyncSafetyTests(unittest.TestCase):
@@ -40,6 +26,77 @@ class SyncSafetyTests(unittest.TestCase):
         return subprocess.run([sys.executable, "-B", str(checkout / "sync.py"), "--home", str(self.home), *options],
                               text=True, capture_output=True, cwd=self.root,
                               env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+
+    def test_designer_scoped_install_preserves_unrelated_plugins_and_config(self):
+        sentinels = {
+            ".omp/agent/config.yml": b"modelRoles:\n  designer: private/model:high\n",
+            ".omp/agent/mcp.json": b'{"mcpServers":{"private":{"url":"https://private"}}}\n',
+            ".omp/agent/extensions/private.ts": b"export default function privateExtension() {}\n",
+            ".omp/agent/managed-skills/private/SKILL.md": b"Private skill\n",
+            ".omp/plugins/package.json": b'{"private":true,"dependencies":{"private-plugin":"2.0.0"}}\n',
+            ".omp/plugins/omp-plugins.lock.json": b'{"plugins":{"private-plugin":{"enabled":true,"private":{"keep":true}}},"settings":{"private":"keep"}}\n',
+            ".config/cmux/private.json": b'{"keep":true}\n',
+        }
+        for relative, content in sentinels.items():
+            destination = self.home / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(content)
+        result = self.run_sync("--only-designer")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for relative, content in sentinels.items():
+            self.assertEqual((self.home / relative).read_bytes(), content)
+        self.assertFalse((self.home / ".zshenv").exists())
+        self.assertFalse((self.home / ".claude.json").exists())
+        self.assertFalse((self.home / ".local/bin").exists())
+
+    def test_designer_repeat_and_full_sync_retain_adapter_without_rewriting(self):
+        installed = self.run_sync("--only-designer")
+        self.assertEqual(installed.returncode, 0, installed.stdout + installed.stderr)
+        paths = [self.home / ".omp/agent/extensions/ui-ux-role.ts",
+                 self.home / ".local/state/dev-stack/managed.json"]
+        timestamps = {path: path.lstat().st_mtime_ns for path in paths}
+        repeated = self.run_sync("--only-designer")
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertIn("Synced 0 changes", repeated.stdout)
+        self.assertEqual({path: path.lstat().st_mtime_ns for path in paths}, timestamps)
+        full = self.run_sync()
+        self.assertEqual(full.returncode, 0, full.stdout + full.stderr)
+        self.assertEqual(paths[0].lstat().st_mtime_ns, timestamps[paths[0]])
+        repeated = self.run_sync("--only-designer")
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertIn("Synced 0 changes", repeated.stdout)
+
+    def test_designer_setup_needs_neither_npm_package_nor_node(self):
+        result = subprocess.run(
+            [sys.executable, "-B", str(ROOT / "sync.py"), "--home", str(self.home), "--only-designer"],
+            text=True, capture_output=True, cwd=self.root,
+            env=dict(os.environ, PATH=str(self.root / "empty-bin"), PYTHONDONTWRITEBYTECODE="1"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((self.home / ".omp/agent/extensions/ui-ux-role.ts").is_file())
+        self.assertFalse((self.home / ".omp/plugins").exists())
+
+    def test_designer_refuses_custom_replacements_and_unsafe_ancestors_before_writes(self):
+        outside = self.root / "outside"
+        outside.mkdir()
+        for relative, kind in (
+                (".omp/agent/extensions/ui-ux-role.ts", "file"),
+                (".agents/workflows", "link")):
+            with self.subTest(destination=relative):
+                destination = self.home / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if kind == "file":
+                    destination.write_text("Private replacement\n")
+                else:
+                    destination.symlink_to(outside, target_is_directory=True)
+                result = self.run_sync("--only-designer")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertFalse((self.home / ".local").exists())
+                self.assertEqual(list(outside.iterdir()), [])
+                if kind == "file":
+                    self.assertEqual(destination.read_text(), "Private replacement\n")
+                else:
+                    self.assertTrue(destination.is_symlink())
+                destination.unlink()
 
     def test_browser_dry_run_does_not_install_or_change_selected_home(self):
         startup = self.home / ".zshenv"
@@ -60,51 +117,26 @@ class SyncSafetyTests(unittest.TestCase):
         result = self.run_sync()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue(startup.read_text().startswith(original))
-        environment = dict(os.environ, HOME=str(self.home))
-        for key in ("PUPPETEER_EXECUTABLE_PATH", "PLAYWRIGHT_MCP_EXECUTABLE_PATH"):
-            environment.pop(key, None)
+        environment = dict(os.environ, HOME=str(self.home), PI_BROWSER_RELAY="1", PI_BROWSER_TERN="1")
+        environment.pop("PUPPETEER_EXECUTABLE_PATH", None)
         command = ["/bin/sh", "-c",
-                   '. "$1"; printf "%s\\n" "$PUPPETEER_EXECUTABLE_PATH" "$PLAYWRIGHT_MCP_EXECUTABLE_PATH" "$PRIVATE_SETTING"',
+                   '. "$1"; printf "%s\\n" "$PUPPETEER_EXECUTABLE_PATH" "$PRIVATE_SETTING" "$PI_BROWSER_RELAY" "$PI_BROWSER_TERN"',
                    "browser-test", str(startup)]
         exported = subprocess.run(command, env=environment, capture_output=True, text=True)
         launcher = str(self.home / ".local/bin/agent-chromium")
         self.assertEqual(exported.returncode, 0, exported.stderr)
-        self.assertEqual(exported.stdout.splitlines(), [launcher, launcher, "keep my setting"])
+        self.assertEqual(exported.stdout.splitlines(), [launcher, "keep my setting", "0", "0"])
         environment["PUPPETEER_EXECUTABLE_PATH"] = "/custom/puppeteer-browser"
-        environment["PLAYWRIGHT_MCP_EXECUTABLE_PATH"] = "/custom/playwright-browser"
         overridden = subprocess.run(command, env=environment, capture_output=True, text=True)
         self.assertEqual(overridden.returncode, 0, overridden.stderr)
         self.assertEqual(overridden.stdout.splitlines(), [
-            "/custom/puppeteer-browser", "/custom/playwright-browser", "keep my setting"])
+            "/custom/puppeteer-browser", "keep my setting", "0", "0"])
         before = startup.stat().st_mtime_ns
         repeated = self.run_sync()
         self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
         self.assertEqual(startup.stat().st_mtime_ns, before)
         self.assertFalse((self.home / ".local/share/dev-stack/headless-browser/node_modules").exists())
 
-    def test_browser_setup_migrates_known_legacy_chrome_exports_and_inherited_values(self):
-        startup = self.home / ".zshenv"
-        legacy = self.home / "Library/Application Support/AgentBrowsers/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
-        original = (
-            "export PRIVATE_SETTING=keep\n"
-            "# Dedicated browser for agent automation; keeps headless sessions separate from personal Chrome.\n"
-            f"export PUPPETEER_EXECUTABLE_PATH={shlex.quote(str(legacy))}\n"
-            f"export PLAYWRIGHT_MCP_EXECUTABLE_PATH={shlex.quote(str(legacy))}\n"
-            "export OTHER_SETTING=untouched\n")
-        startup.write_text(original)
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        inherited = dict(os.environ, PUPPETEER_EXECUTABLE_PATH=str(legacy),
-                         PLAYWRIGHT_MCP_EXECUTABLE_PATH=str(legacy))
-        exported = subprocess.run(
-            ["/bin/sh", "-c", '. "$1"; printf "%s\\n" "$PUPPETEER_EXECUTABLE_PATH" "$PLAYWRIGHT_MCP_EXECUTABLE_PATH" "$PRIVATE_SETTING" "$OTHER_SETTING"',
-             "browser-test", str(startup)], env=inherited, text=True, capture_output=True)
-        self.assertEqual(exported.returncode, 0, exported.stderr)
-        launcher = str(self.home / ".local/bin/agent-chromium")
-        self.assertEqual(exported.stdout.splitlines(), [launcher, launcher, "keep", "untouched"])
-        self.assertNotIn(str(legacy), startup.read_text())
-        backups = list((self.home / ".local/state/dev-stack/backups").rglob(".zshenv"))
-        self.assertEqual([path.read_text() for path in backups], [original])
 
     def test_browser_setup_refuses_foreign_marker_or_cache_before_writes(self):
         outside = self.root / "outside"
@@ -204,26 +236,6 @@ class SyncSafetyTests(unittest.TestCase):
         self.assertEqual(saved.read_text(), original)
         self.assertEqual(saved.stat().st_mtime_ns, modified)
 
-    def test_known_managed_hermes_launcher_upgrades_without_replacing_original(self):
-        self.home = self.root / "home with 'quotes' & unicode ☕"
-        launcher = self.home / ".local/bin/hermes"
-        saved = self.home / ".hermes/cmux-bridge/hermes-original"
-        launcher.parent.mkdir(parents=True)
-        saved.parent.mkdir(parents=True)
-        original = '#!/bin/sh\nexec /local/hermes-runtime/bin/hermes "$@"\n'
-        previous = LEGACY_HERMES_LAUNCHER.replace("@HOME_SHELL@", shlex.quote(str(self.home)))
-        launcher.write_text(previous)
-        saved.write_text(original)
-        result = self.run_sync("--only-hermes")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(saved.read_text(), original)
-        self.assertNotEqual(launcher.read_text(), previous)
-        backups = list((self.home / ".local/state/dev-stack/backups").rglob(".local/bin/hermes"))
-        self.assertEqual([path.read_text() for path in backups], [previous])
-        repeated = self.run_sync("--only-hermes")
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        self.assertIn("Synced 0 changes", repeated.stdout)
-
     def test_hermes_custom_launcher_is_not_overwritten(self):
         launcher = self.home / ".local/bin/hermes"
         launcher.parent.mkdir(parents=True)
@@ -258,11 +270,13 @@ class SyncSafetyTests(unittest.TestCase):
         config = self.home / ".config/cmux/cmux.json"
         config.parent.mkdir(parents=True)
         secret = "local-private-password-for-this-test"
-        original = {"schemaVersion": 0, "automation": {"socketPassword": secret}}
+        original = {"schemaVersion": 0, "automation": {
+            "socketPassword": secret, "claudeBinaryPath": "/private/claude", "socketControlMode": "password"}}
         config.write_text(json.dumps(original))
         result = self.run_sync()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(json.loads(config.read_text())["automation"]["socketPassword"], secret)
+        self.assertEqual(json.loads(config.read_text())["automation"], {
+            **original["automation"], "socketControlMode": "cmuxOnly"})
         self.assertNotIn(secret, result.stdout + result.stderr)
         backups = list((self.home / ".local/state/dev-stack/backups").rglob("cmux.json"))
         self.assertEqual([json.loads(p.read_text()) for p in backups], [original])
@@ -272,6 +286,19 @@ class SyncSafetyTests(unittest.TestCase):
         repeated = self.run_sync()
         self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
         self.assertEqual(config.stat().st_mtime_ns, before)
+
+    def test_sync_does_not_create_or_replace_cleared_socket_passwords(self):
+        for name, automation in (("absent", {}), ("empty", {"socketPassword": ""}),
+                                 ("null", {"socketPassword": None})):
+            with self.subTest(name=name):
+                self.home = self.root / name
+                config = self.home / ".config/cmux/cmux.json"
+                config.parent.mkdir(parents=True)
+                config.write_text(json.dumps({"automation": automation}))
+                result = self.run_sync()
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(json.loads(config.read_text())["automation"], {
+                    **automation, "socketControlMode": "cmuxOnly"})
 
     def test_claude_keeps_private_state_and_same_endpoint_auth(self):
         mobbin = {"type": "http", "url": "https://api.mobbin.com/mcp",
@@ -417,6 +444,75 @@ class SyncSafetyTests(unittest.TestCase):
         self.assertNotIn("retired-server", installed)
         self.assertEqual(installed["private"]["url"], "https://private.example.invalid")
 
+    def test_workflows_only_preserves_runtime_settings_tasks_and_schedules(self):
+        sentinels = {
+            ".omp/agent/config.yml": b"theme: user-choice\n",
+            ".codex/config.toml": b"private runtime configuration\n",
+            ".claude.json": b"private auth deliberately not parsed as JSON",
+            ".config/opencode/profiles/default/opencode.jsonc": b"private profile settings",
+            ".config/cmux/cmux.json": b"private native access settings",
+            ".hermes/profiles/main-assistant/config.yaml": b"private assistant credentials",
+            ".hermes/profiles/main-assistant/cron/jobs.json": b"existing approved live routine",
+            ".local/share/personal-backlog/backlog/tasks/WORK-42-user.md": b"User-owned task and evidence\n",
+        }
+        for relative, content in sentinels.items():
+            path = self.home / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        intent = self.home / ".hermes/shared/work-management/weekday-brief.json"
+        intent.parent.mkdir(parents=True, exist_ok=True)
+        local_metadata = {"lastVerified": "private local observation", "receiptId": "local-only"}
+        intent.write_text(json.dumps({"localDeliveryReceipt": local_metadata}))
+        result = self.run_sync("--only-workflows")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for relative, content in sentinels.items():
+            self.assertEqual((self.home / relative).read_bytes(), content, relative)
+        self.assertEqual(json.loads(intent.read_text())["localDeliveryReceipt"], local_metadata)
+        self.assertFalse((self.home / ".local/bin/work-queue").exists())
+        self.assertFalse((self.home / ".local/bin/hermes").exists())
+        self.assertFalse((self.home / ".config/cmux/dock.json").exists())
+        self.assertFalse((self.home / ".omp/agent/mcp.json").exists())
+        repeated = self.run_sync("--only-workflows")
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertIn("Synced 0 changes", repeated.stdout)
+
+    def test_executor_prompt_conflicts_refuse_before_any_writes(self):
+        private = self.root / "private-prompt.md"
+        private.write_text("Private prompt and permissions\n")
+        for kind in ("literal", "literal-link", "template", "template-link"):
+            with self.subTest(kind=kind):
+                self.home = self.root / kind
+                name = "SYSTEM.md" if kind.startswith("literal") else "SYSTEM_TEMPLATE.md"
+                prompt = self.home / ".omp/agent" / name
+                prompt.parent.mkdir(parents=True)
+                if kind.endswith("-link"):
+                    prompt.symlink_to(private)
+                else:
+                    prompt.write_text("Private prompt and permissions\n")
+                for options in (("--only-workflows",), ()):
+                    with self.subTest(options=options):
+                        result = self.run_sync(*options)
+                        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                        self.assertEqual(prompt.read_text(), "Private prompt and permissions\n")
+                        self.assertEqual(private.read_text(), "Private prompt and permissions\n")
+                        self.assertFalse((self.home / ".omp/agent/RULES.md").exists())
+                        self.assertFalse((self.home / ".hermes").exists())
+                        self.assertFalse((self.home / ".local").exists())
+
+    def test_workflows_only_rejects_redirected_authority_before_writing_contexts(self):
+        outside = self.root / "private-workflows"
+        outside.mkdir()
+        (outside / "POLICY.md").write_text("User's separate policy\n")
+        root = self.home / ".agents/workflows"
+        root.parent.mkdir(parents=True)
+        root.symlink_to(outside, target_is_directory=True)
+        result = self.run_sync("--only-workflows")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual((outside / "POLICY.md").read_text(), "User's separate policy\n")
+        self.assertFalse((self.home / ".omp/agent/RULES.md").exists())
+        self.assertFalse((self.home / ".hermes/profiles/main-assistant/SOUL.md").exists())
+        self.assertFalse((self.home / ".local/state/dev-stack/managed.json").exists())
+
     def test_backlog_only_preserves_tasks_credentials_and_unrelated_settings(self):
         self.home = self.root / "home with 'quotes' & ü"
         self.home.mkdir()
@@ -530,7 +626,8 @@ class SyncSafetyTests(unittest.TestCase):
         shutil.copyfile(ROOT / "sync.py", checkout / "sync.py")
         shutil.copytree(ROOT / "integrations/personal-backlog", checkout / "integrations/personal-backlog")
         shutil.copytree(ROOT / "skills/personal-backlog", checkout / "skills/personal-backlog")
-        shutil.copyfile(ROOT / "skills/POLICY.md", checkout / "skills/POLICY.md")
+        (checkout / "workflows").mkdir()
+        shutil.copyfile(ROOT / "workflows/POLICY.md", checkout / "workflows/POLICY.md")
         defaults = {
             "workspace_id": "33333333-3333-4333-8333-333333333333",
             "window_id": "44444444-4444-4444-8444-444444444444",
@@ -645,7 +742,8 @@ class SyncSafetyTests(unittest.TestCase):
         shutil.copyfile(ROOT / "sync.py", relocated / "sync.py")
         shutil.copytree(ROOT / "integrations/personal-backlog", relocated / "integrations/personal-backlog")
         shutil.copytree(ROOT / "skills/personal-backlog", relocated / "skills/personal-backlog")
-        shutil.copyfile(ROOT / "skills/POLICY.md", relocated / "skills/POLICY.md")
+        (relocated / "workflows").mkdir()
+        shutil.copyfile(ROOT / "workflows/POLICY.md", relocated / "workflows/POLICY.md")
         result = self.run_sync("--only-backlog", checkout=relocated)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         state = json.loads(state_path.read_text())
@@ -657,23 +755,22 @@ class SyncSafetyTests(unittest.TestCase):
             self.assertEqual((self.home / target).resolve(), Path(source))
             if target != ".agents/skills/other-skill":
                 self.assertTrue(Path(source).is_relative_to(relocated))
-        for target in (".agents/skills/POLICY.md", ".omp/agent/personal-skills/POLICY.md"):
-            policy = self.home / target
-            self.assertEqual(policy.resolve(), relocated / "skills/POLICY.md")
+        policy = self.home / ".agents/workflows/POLICY.md"
+        self.assertEqual(policy.resolve(), relocated / "workflows/POLICY.md")
         before = state_path.stat().st_mtime_ns
         repeated = self.run_sync("--only-backlog", checkout=relocated)
         self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
         self.assertEqual(state_path.stat().st_mtime_ns, before)
 
     def test_scoped_policy_replaces_regular_file_with_private_backup(self):
-        policy = self.home / ".omp/agent/personal-skills/POLICY.md"
+        policy = self.home / ".agents/workflows/POLICY.md"
         policy.parent.mkdir(parents=True)
         original = "Existing policy with local edits.\n"
         policy.write_text(original)
         result = self.run_sync("--only-backlog")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue(policy.is_symlink())
-        self.assertEqual(policy.resolve(), ROOT / "skills/POLICY.md")
+        self.assertEqual(policy.resolve(), ROOT / "workflows/POLICY.md")
         backups = list((self.home / ".local/state/dev-stack/backups").rglob("POLICY.md"))
         self.assertEqual([path.read_text() for path in backups], [original])
         self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
@@ -683,7 +780,7 @@ class SyncSafetyTests(unittest.TestCase):
     def test_scoped_policy_refuses_foreign_link_before_any_write(self):
         private = self.root / "private-policy"
         private.write_text("user-owned policy")
-        policy = self.home / ".agents/skills/POLICY.md"
+        policy = self.home / ".agents/workflows/POLICY.md"
         policy.parent.mkdir(parents=True)
         policy.symlink_to(private)
         result = self.run_sync("--only-backlog")

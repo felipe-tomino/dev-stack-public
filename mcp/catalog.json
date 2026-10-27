@@ -1,6 +1,17 @@
 {
-  "selected": ["mobbin", "uxpeak", "github"],
+  "selected": ["mobbin", "uxpeak", "github", "google-personal"],
   "mcpServers": {
+    "google-personal": {
+      "type": "stdio",
+      "command": "@HOME@/.local/bin/workspace-mcp",
+      "args": ["--single-user", "--read-only", "--tools", "docs", "sheets", "drive", "--tool-tier", "core"],
+      "cwd": "@HOME@/.config/workspace-mcp-personal",
+      "env": {
+        "GOOGLE_CLIENT_SECRET_PATH": "@HOME@/.config/workspace-mcp-personal/client_secret.json",
+        "WORKSPACE_MCP_CREDENTIALS_DIR": "@HOME@/.config/workspace-mcp-personal/credentials",
+        "OAUTHLIB_INSECURE_TRANSPORT": "1"
+      }
+    },
     "mobbin": {"type": "http", "url": "https://api.mobbin.com/mcp"},
     "uxpeak": {"type": "http", "url": "https://connect.uxpeak.com"},
     "github": {

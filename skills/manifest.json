@@ -82,6 +82,7 @@
     {
       "name": "implement",
       "sourcePath": "skills/engineering/implement",
+      "disposition": "Merged into workflows/execution/AGENTS.md; no separate installed workflow.",
       "originalSha256": {
         "SKILL.md": "483bdc4ccf4ac31d86ac7beeaa0d0db80313e71e120bb8c59b3196ae5decd53d"
       }
@@ -96,6 +97,7 @@
     {
       "name": "grill-me",
       "sourcePath": "skills/productivity/grill-me",
+      "disposition": "Merged into the explicit grilling skill; wrapper removed.",
       "originalSha256": {
         "SKILL.md": "caaf8b8de1684f96e26b28f3c29189db5c89cce4b73e1c93d86164f66ef88637"
       }

@@ -5,7 +5,7 @@ modelRoles:
   task: openai-codex/gpt-6.1-sol:medium
   slow: openai-codex/gpt-6-astra:high
   plan: openai-codex/gpt-6-astra:high
-  designer: openai-codex/gpt-6.1-sol:high
+  designer: anthropic/claude-opus-5-5:high
   vision: openai-codex/gpt-6.1-sol:medium
 symbolPreset: nerd
 composer:
@@ -18,3 +18,35 @@ skills:
     - ~/.agents/skills
   ignoredSkills:
     - devcontainer
+async:
+  widgets: false
+browser:
+  enabled: true
+  headless: true
+  relay: false
+  cdpUrl: null
+  tern: false
+  cmux: false
+task:
+  completionProbe: false
+title:
+  refreshOnReplan: false
+plan:
+  enabled: true
+  defaultOnStartup: false
+goal:
+  enabled: true
+ttsr:
+  enabled: true
+  builtinRules: true
+  # Project conventions own style; retain the other native safeguards.
+  disabledRules:
+    - ts-bare-catch
+    - ts-import-type
+    - ts-no-dynamic-import
+    - ts-no-local-is-record
+    - ts-no-return-type
+    - ts-no-tiny-functions
+    - ts-promise-with-resolvers
+    - ts-redundant-clear-guard
+    - ts-set-map

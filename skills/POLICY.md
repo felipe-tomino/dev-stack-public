@@ -1,43 +1,21 @@
-# Personal building policy
+# Engineering quality
 
-These editable personal skills define the user's default building process. Use them instead of equivalent optional repository workflow skills unless the user requests another process. Repository RULES, explicit AGENTS/CLAUDE requirements, security constraints, domain contracts, architecture contracts, and required PR/test conventions remain binding. Treat optional recipes as context, not a reason to silently replace this workflow. If a real conflict remains, name it and resolve it before the conflicting action.
+The personal method is `~/.agents/workflows/execution/AGENTS.md`. Read `~/.agents/workflows/POLICY.md` for shared authorization, privacy, evidence and focus boundaries. This engineering policy applies to execution, not assistance. Mandatory repository instructions, security/domain contracts and required test/PR conventions remain binding; personal guidance replaces only equivalent optional recipes.
 
-## Governing design principle: KISS
+## Smallest complete solution
 
-**Keep it simple, stupid.** KISS governs how SOLID, DRY, DDD, Clean Code, Clean Architecture, and related principles are applied. Satisfy their intent with the simplest complete design; named patterns, layers, classes, and interfaces are means, not deliverables.
+KISS governs SOLID, DRY, DDD and Clean Architecture. Minimize total reasoning and change cost while preserving the requested behavior, security, data integrity, error semantics and accessibility. Fewer lines alone are not a better design.
 
-Simplicity means low total reasoning and change cost for callers and maintainers, not merely few lines, files, or dependencies. Correctness, security, domain invariants, and mandatory repository contracts remain binding. Removing validation, authorization, error handling, necessary atomicity, or a required boundary is not a valid simplification.
+Before adding code, choose the first adequate option: existing repository behavior or configuration; an established helper/component/pattern; standard-library or native platform capability consistent with project conventions; an installed dependency; then focused new code. Do not add a dependency, wrapper, layer, conversion, option or generic extension without an actual contract, ownership boundary or demonstrated need.
 
-Before adding structure, identify the actual rule, caller need, ownership boundary, demonstrated variation, or binding contract it serves. Prefer an existing module, plain data, and a focused function when those satisfy the contract. Add a layer or abstraction only when the simpler alternative cannot preserve that contract or would spread real complexity across callers.
+Reuse shared knowledge, not coincidentally similar syntax. Keep responsibilities and dependencies coherent; a plain function and data can satisfy the same contract as a named pattern. Preserve validation at trust boundaries, authorization, necessary atomicity, error handling and required architecture. Prefer a clean cutover of affected callers over shims and obsolete aliases.
 
-DRY protects shared knowledge and business rules, not coincidentally similar syntax. SOLID governs responsibilities and behavioral contracts, not class counts. DDD models real domain distinctions and invariants, not every noun. Clean Architecture protects dependency direction and business policy from implementation details, not a mandatory folder hierarchy.
+Consult `~/.agents/skills/codebase-design/PRINCIPLES.md` only for consequential interface/dependency decisions; domain invariants belong to the repository's existing authority. Existing comments and docs should explain reasons or operational contracts, not repeat obvious implementation.
 
-When designs compete, choose the least machinery that satisfies the same requirements and makes expected changes local. Explain necessary complexity in terms of the requirement it protects; remove ceremony rather than bypass the principle. Read `~/.agents/skills/codebase-design/PRINCIPLES.md` for material responsibility, interface, dependency-direction, or component-boundary decisions.
+## Verification quality
 
-## Decisions and scope
+Permanent tests earn their place by catching plausible consumer-visible failures: behavior, boundaries, precedence, transitions, transformations, authorization, invariants and errors. Extend established suites and seams. Avoid assertions about wiring, static copy, types, mock echoes, private call structure, incidental defaults or bare absence of exceptions.
 
-- Derive facts and established conventions from tools, code, configuration, and primary sources. Ask the user only for material unresolved decisions; batch independent questions with a recommendation and tradeoff. Do not reopen settled scope.
-- State the requested outcome, relevant constraints, and observable acceptance criteria. Choose only the skills that address real uncertainty; a small change does not need a complete ceremony.
-- Investigate the actual problem. Prefer existing patterns and simple interfaces; add no unrequested retries, validation, abstraction, telemetry, or scaffolding.
-- Use available native file-reading tools to load `~/.agents/skills/<name>/SKILL.md` and supporting files under that directory. Expand `~` to the current home directory if the tool requires an absolute path. Resolve relative assets against the skill directory, not the working directory. No special skill tool or tracker setup is required.
+Use deterministic, isolated tests with independently derived expected outcomes. Honor repository-approved real/emulated paths and persistence assertions. Test-first work uses one meaningful behavior per red/green cycle; it is not a reason to test every edit or build universal scaffolding.
 
-## Focus preservation
-
-Preserve the user's active tab, workspace, window, and application during testing and verification. Create test tabs and workspaces without focusing them. MUST ask before any verification step that would take focus, including screenshots. Restoring the previous view afterward does not replace permission.
-
-For agent-created headless browser sessions, use the dedicated executable configured in `PUPPETEER_EXECUTABLE_PATH` (also `PLAYWRIGHT_MCP_EXECUTABLE_PATH` for Playwright CLI/MCP), or Playwright’s bundled Chromium. For direct Playwright scripts, pass the dedicated path as `executablePath` or use its bundled browser. Keep `/Applications/Google Chrome.app` for personal browsing: headless launches of that app can intercept macOS link clicks. Connecting to an existing user browser when the task calls for it remains supported.
-
-## Evidence and verification
-
-- Keep sourced facts, observed runtime behavior, and inference distinct. User-reported failures are ground truth; do not rerun a known failure merely to confirm the report. Build a feedback loop when needed to locate the cause and verify the fix.
-- Tests earn their place by catching plausible behavior, invariant, transformation, authorization, validation, or regression failures not already proven. Extend existing suites. Avoid plumbing, copy, types, constants, mock echoes, bare not-throw assertions, and duplicated scenarios.
-- Explicit TDD means one meaningful behavior at a time: failing test, minimal implementation, passing test. Use established test seams; ask when the choice changes the public contract or coverage materially. Repository-specific observation boundaries, including DAO assertions after real emulated endpoint calls, are legitimate.
-- Runtime verification is separate from tests. Exercise the changed CLI/API/UI path and observe the result; browser or Storybook interaction proves UI behavior. A throwaway prototype answers a design question, not production correctness.
-- Focus checks on the changed surface. Run necessary feedback loops during development and relevant final checks after integration; do not blanket-run every suite or let passing tests stand in for runtime proof. Remove temporary instrumentation and smoke artifacts after verification.
-
-## Writes and delivery
-
-- Loading a skill authorizes its guidance, not additional operational side effects. Commit, push, publish/update PRs, mutate tracker state, deploy, or provision only when the current user task requests that action. Request approval for destructive operations or unrelated deletions.
-- Use the repository's existing domain documentation as the authority; do not create a competing glossary. Use existing artifact conventions and capture significant decisions when requested or needed by the actual change. Routine research can stay in chat.
-- Separate independent review from implementation. Review is read-only unless the user explicitly requests fixes as a separate action. Findings need evidence, plausible impact, and justified severity; distinguish hard violations from design suggestions.
-- Write for a technical reader: conclusion first, concise motivation, concrete evidence, explicit limitations. PRs retain required repository template sections and distinguish exercised verification from pending work.
+Match runtime proof to the surface and consequences. Use existing commands, fixtures and tools before adding verification infrastructure. Report what the observed evidence covers and what it does not; remove temporary instrumentation after it has served its purpose.

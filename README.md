@@ -19,6 +19,100 @@ Full sync generates `~/.config/cmux/sidebars/workspaces-local.js`. On the real m
 
 Existing credentials, Claude account/project state, app-managed Codex MCPs/trust/notifications, and local permission settings remain local. Matching-endpoint MCP credentials are preserved; changed endpoints do not inherit them. Sync owns the names in the shared MCP catalog and removes unselected entries with those names from user-level MCP configuration. It leaves unrelated MCPs, skills and workspace files alone. A small local ownership record allows retirement of previously synced skill links and MCP names. Foreign destination symlinks or non-directory ancestors are refused before writes. File replacement is atomic per file, not an all-files transaction; native command failure is reported rather than silently ignored.
 
+## Portable workflows and runtime roles
+
+The user's method lives outside native agent configuration. Assistance and execution have separate authorities:
+
+| Authority | Responsibility | Current runtime attachment |
+| --- | --- | --- |
+| [`workflows/POLICY.md`](workflows/POLICY.md) | Shared authorization, evidence, privacy and focus boundaries | Both workflows |
+| [`workflows/assistance/`](workflows/assistance/AGENTS.md) | Main Assistant organization and Engineering Lead product/engineering representation | Hermes profile selectors |
+| [`workflows/execution/AGENTS.md`](workflows/execution/AGENTS.md) and [`skills/POLICY.md`](skills/POLICY.md) | Risk-proportional execution, relevant disciplines and verified delivery | OMP, Codex, Claude Code, Pi and OpenCode |
+
+Main Assistant and Engineering Lead are optional parallel assistants, outside the executor workflow. Hermes is their current runtime, not their behavioral authority. Native files under `agents/` select a role and supply discovery, record, transport and scheduler details. Assistance does not load implementation methodology; executors do not load assistant personas. Shared writing, Google Workspace and backlog capabilities import only the common policy.
+
+Install or refresh the instructions, skills, OMP executor prompt template and personal visual model adapter without changing model settings, MCPs, native hooks, task data, browser setup or active routines:
+
+```sh
+python3 sync.py --only-workflows --dry-run
+python3 sync.py --only-workflows
+```
+
+Portable files are linked under `~/.agents/workflows/`; shared skills remain under `~/.agents/skills/`. Native context files select explicit roles. `--only-workflows` also installs the OMP executor template and updates the independent personal UI/UX adapter. It restores Hermes declarative brief intent, never a live job, and does not provision the backlog runtime or manage npm plugins. Sync does not restart agents.
+
+To host an assistant in another runtime, use a separate native profile/configuration, point its native instructions to `~/.agents/workflows/assistance/AGENTS.md` and the selected `main-assistant.md` or `engineering-lead.md`, and provide that environment's private-record and supported transport/routine mapping. Reuse the role files unchanged; do not copy an executor's building policy or assume Hermes-specific connectors exist. The current adapters keep the five coding runtimes in executor roles. Runtime capabilities can differ; report missing capabilities rather than claiming equivalent behavior.
+
+Both assistance roles are personal-backlog **managers**. Executors are **collaborators**: they report attributed progress, blockers and evidence on existing relevant tasks without creating tasks, changing priority/status/acceptance criteria or closing commitments. A missing task ID does not block authorized execution. These are instruction-level role boundaries, not CLI access-control enforcement.
+
+## Personal execution method
+
+[`workflows/execution/AGENTS.md`](workflows/execution/AGENTS.md) is the single process authority: establish the authorized outcome, inspect the affected flow, choose rigor by consequence, make the smallest complete change, prove it and stop at the finish condition. [`skills/POLICY.md`](skills/POLICY.md) owns engineering quality, while focused disciplines are loaded only for an actual uncertainty.
+
+The principal keeps cohesive investigation, implementation and verification in one context. Delegate for independently bounded research/deliverables, noisy context isolation, fresh risk-proportional review or a necessary restricted-tool boundary—not merely different files, layers or model choices. One researcher or reviewer can be justified; two review axes do not require two agents. Parallel tool calls need no workers. Native plan/goal modes remain optional.
+
+The [consolidation inventory](skills/README.md#disposition) records every keep/adapt/merge/remove decision and the [reference decisions](skills/README.md#reference-decisions). `implement` was merged into the method; `grill-me` was folded into canonical explicit `grilling`. Neither obsolete wrapper remains installed. The retained guides no longer form compulsory nested workflows.
+
+This is a personal adaptation of useful Matt Pocock, p-stack and Ponytail ideas, not installation of their competing modes. No automatic interview, full-skill reading, agent fleet, PR, commit, document trio or smallest-possible partial deliverable is implied.
+
+For authorized changes to executor strategy, [the on-demand comparison guide](workflows/execution/EVALUATION.md) defines replayable before/after tasks, fresh-session repetitions and outcome/coordination metrics. It is not a new stage for normal coding or wording edits; no framework, scheduled maintenance or productivity gain is implied.
+
+## OMP runtime overhead
+
+[`agents/omp/config.yml`](agents/omp/config.yml) keeps engineering tools available without model-authored progress displays:
+
+| Preference | Configuration |
+| --- | --- |
+| No model-authored background-job widgets | `async.widgets: false` |
+| No periodic subagent completion estimates | `task.completionProbe: false` |
+| No title refresh after todo replanning | `title.refreshOnReplan: false` |
+| Planning available, not entered at startup | `plan.enabled: true`, `plan.defaultOnStartup: false` |
+| Goal mode available when deliberately selected | `goal.enabled: true` |
+
+TTSR and bundled rules remain enabled. The config lists nine disabled TypeScript conventions so the project owns import style, helper extraction, Promise construction and related choices. Type-boundary, deterministic-test and clean-cutover safeguards remain; Go/Rust rules are unchanged. Mandatory repository contracts and engineering policy still apply.
+
+Full sync restores these runtime settings. `--only-workflows` refreshes portable instructions, skills and the executor template without changing runtime settings. The visual adapter, LSP/AST/Eval, background execution, model roles and MCPs are retained.
+
+## OMP executor prompt
+
+[`agents/omp/SYSTEM_TEMPLATE.md`](agents/omp/SYSTEM_TEMPLATE.md) is linked to `~/.omp/agent/SYSTEM_TEMPLATE.md` through OMP's native Handlebars route. It replaces the bundled base prompt's competing execution/delegation recipes with the shared method. Tool catalogs, internal URLs, skills, always-apply and conditional rules remain live template data; the native renderer still supplies project context, append instructions, eval/safety blocks and provider tool schemas. This is not a copied `/dump` or an extension that rewrites prompt strings.
+
+Full and workflow-scoped sync refuse a competing user-level `SYSTEM.md`, a regular custom `SYSTEM_TEMPLATE.md` or an unrelated destination symlink before any writes. Resolve the reported ownership/precedence conflict explicitly rather than deleting personal instructions. Project-level custom prompts and explicit CLI overrides retain native precedence; the user template is not a permission mechanism.
+
+The template uses the [OMP 18.12.6 native prompt contract](https://github.com/can1357/oh-my-pi/blob/v18.12.6/packages/coding-agent/src/system-prompt.ts). Review native template variables when upgrading OMP. Restart the process and use `omp --continue` or `omp --resume` to retain the conversation; running processes cache prompt source and skill discovery. A stale advertised skill is not evidence that its plugin remains installed—check fresh native discovery. No sessions are restarted by sync.
+
+## Personal visual workflow and OMP adapter
+
+[`visual-design`](skills/visual-design/SKILL.md) is a short portable UI/UX guide. All UI/UX tasks and decisions—including advice-only questions and small visual corrections—use **Claude Opus 5.5 High** unless the user explicitly selects another model. Start from the existing design system, understand the user's main action, recommend or implement the smallest appropriate change, and verify what actually changed. Advice-only work does not imply implementation or a runtime test.
+
+The principal stays in its existing context; the OMP adapter selects `modelRoles.designer` (`anthropic/claude-opus-5-5:high`) before UI/UX reasoning through `designer` start/finish. UXPeak supplies relevant usability guidance; Mobbin supplies concrete screen/flow/section references when they help. A tiny correction does not require a new Mobbin search. Backend work, UI-preserving wiring and designer-tooling setup remain on the normal model. Finish restores the previous model/effort; cancellation and session transitions retain the same safeguards. `/designer` is an explicit session-local pin, not a separate workflow or persisted vendor toggle.
+
+Install the adapter separately when needed:
+
+```sh
+python3 sync.py --only-designer --dry-run
+python3 sync.py --only-designer
+```
+
+The personal extension is [`integrations/omp-ui-ux/extension.ts`](integrations/omp-ui-ux/extension.ts), installed as `~/.omp/agent/extensions/ui-ux-role.ts`. No npm designer package, Node validator, 12-skill manifest, read-order gate or palette database is required. Sync refuses unowned changes to the installed adapter and unsafe destination symlinks before writes. It does not read or modify plugin registries. Missing/unavailable configured roles produce a diagnostic, not a substitute model.
+
+Full and workflow-scoped sync maintain this adapter. Restart the OMP process to load extension changes, then use `omp --continue` or `omp --resume` to retain the existing conversation; a new conversation is not required. Already-running processes retain loaded code until reloaded/restarted, and sync does not restart them. Other runtimes use the same portable visual discipline with their available capabilities, without assuming an OMP tool.
+
+Native lifecycle regressions run without model inference or live credentials:
+
+```sh
+python3 -B -m unittest discover -s tests -p test_omp_ui_ux.py -v
+```
+
+They require only installed OMP, use isolated homes, and exercise actual role/effort selection, restoration, cancellation/rollback ordering, session boundaries, manual pinning and owned-context lifetime. Missing OMP skips; runtime failures fail the tests.
+
+## Executor browser automation
+
+The [execution method's browser policy](workflows/execution/AGENTS.md#browser-work) requires headless automation with agent-owned browser state. OMP uses its native Puppeteer-backed Eval `browser` integration; no parallel automation framework is installed by the workflow. Project instructions own their test runners, dependencies and browser setup. Running a project's suite and inspecting its UI through the native browser are separate activities.
+
+OMP's tracked configuration enables the native helper and headless mode while disabling relay, configured CDP attachment, Tern and cmux browser routing. Headless mode alone would not disable those alternative routes. The dedicated executable below keeps automation separate from personal Chrome and fails rather than falling back to it.
+
+A necessary manual user action is the only visible-browser exception, handled in the system default browser without automating personal tabs. Main Assistant and Engineering Lead remain outside this execution method.
+
 ## Dedicated headless Chromium
 
 Full sync installs browser configuration without downloading a browser. Provision unbranded Chromium separately from personal Google Chrome:
@@ -32,15 +126,15 @@ python3 sync.py --only-browser
 
 Setup requires Node.js 22.12+ and npm in addition to Python 3.11+. It installs locked browser-management dependencies privately under `~/.local/share/dev-stack/headless-browser/` and downloads the latest official Chromium snapshot for the current platform through the [Puppeteer browser installer](https://pptr.dev/browsers-api/browsers.install). Chromium snapshots are development builds, not stable Chrome releases. Repeating setup reuses an already-cached revision; a newer upstream revision is downloaded only when setup is explicitly run again.
 
-`~/.local/bin/agent-chromium` launches the dedicated executable with headless mode enforced and a private default profile. Puppeteer/Playwright can still supply their own isolated profile. The launcher never downloads dependencies or falls back to personal Chrome. If provisioning has not run, it fails with setup instructions. Setup does not change the default browser, personal Chrome installation, or personal browser profiles.
+`~/.local/bin/agent-chromium` launches the dedicated executable with headless mode enforced and a private default profile. Native OMP can supply its own isolated profile. The launcher never downloads dependencies or falls back to personal Chrome. If provisioning has not run, it fails with setup instructions. Setup does not change the default browser, personal Chrome installation, or personal browser profiles.
 
-`~/.config/dev-stack/browser.env` configures `PUPPETEER_EXECUTABLE_PATH` and `PLAYWRIGHT_MCP_EXECUTABLE_PATH`. Setup migrates the exact previous local Chrome-for-Testing export block and its matching inherited executable path; other nonempty overrides win. Full sync and `--only-browser` maintain one marked source block in `~/.zshenv`, preserving other startup content and privately backing up replacements. New zsh shells inherit the paths automatically. For another POSIX shell, source the environment file before launching an agent. Existing agent processes need a normal restart to inherit the new environment; sync does not restart them.
+`~/.config/dev-stack/browser.env` supplies `PUPPETEER_EXECUTABLE_PATH` when unset and sets `PI_BROWSER_RELAY=0` and `PI_BROWSER_TERN=0` to prevent inherited routing overrides. Full sync and `--only-browser` maintain one marked source block in `~/.zshenv`, preserving unrelated startup content and privately backing up replacements. New zsh shells load this environment automatically; for another POSIX shell, source the file before launching OMP. Existing processes need a normal restart to inherit it; sync does not restart them. There are no legacy browser-export migrations or project test-runner overrides.
 
-For direct Playwright scripts, pass `process.env.PUPPETEER_EXECUTABLE_PATH` as `executablePath`; Playwright's library does not consume the MCP-specific environment variable automatically. `--only-browser` also supports `--home /path/to/isolated/home` and leaves all other agent and cmux settings untouched. Dry run writes nothing and executes no provisioning commands.
+`--only-browser` supports `--home /path/to/isolated/home` and leaves all other agent and cmux settings untouched. Dry run writes nothing and executes no provisioning commands.
 
 ## CLI-only cmux access
 
-Hermes and OMP run inside cmux with `automation.socketControlMode = cmuxOnly`. cmux authorizes its descendant processes or clients with a valid inherited capability; no shared password is required for these CLI sessions. The tracked configuration preserves this policy on future syncs.
+Hermes and OMP run inside cmux with `automation.socketControlMode = cmuxOnly`. cmux authorizes its descendant processes or clients with a valid inherited capability; no shared password is required for these CLI sessions. The tracked configuration preserves this policy on future syncs. Sync does not generate a socket password and preserves existing private automation fields.
 
 The background Hermes bot gateway is outside that process tree and no longer has cmux access. Switching the socket policy does not stop that gateway or restart agents. Launchd-based status publishers without a valid capability are also excluded. Do not broaden access to restore background integrations without user authorization.
 
@@ -63,7 +157,7 @@ python3 sync.py --only-hermes --dry-run
 python3 sync.py --only-hermes
 ```
 
-Full sync includes the same adapter. If `~/.local/bin/hermes` is the standard two-line launcher, sync preserves its original contents privately as `~/.hermes/cmux-bridge/hermes-original` and installs a launcher-scoped cmux frontend. Sync also recognizes the exact previous managed frontend and keeps its preserved original during upgrades. Custom launchers and foreign symlinks are refused; a missing Hermes launcher is not created. Install Hermes independently first.
+Full sync includes the same adapter. If `~/.local/bin/hermes` is the standard two-line launcher, sync preserves its original contents privately as `~/.hermes/cmux-bridge/hermes-original` and installs a launcher-scoped cmux frontend. Repeated sync accepts the current managed frontend and retains its preserved original. Custom launchers and foreign symlinks are refused; a missing Hermes launcher is not created. Install Hermes independently first.
 
 Only Hermes hook calls are translated. Native cmux retains authentication, routing, notifications, approvals and restore bookkeeping. The adapter enriches callbacks with an authoritative conversation ID, skips unidentifiable callbacks, sends turn completion as `Stop`, and preserves genuine finalization as `SessionEnd`. Other cmux commands pass through. No profile configuration, hook-consent entries, passwords or session data are copied into the repository.
 
@@ -94,9 +188,9 @@ See the [native persistence contract](https://github.com/manaflow-ai/cmux/blob/v
 
 ## Sources of truth
 
-- `agents/`: model, UI, hook and plugin preferences, native global instruction snapshots, and Hermes role/workflow definitions. Binaries, auth stores, live permission grants and account/session state remain local.
-- `skills/`: the 14 personal building guides, `writing`, `no-ai-slop`, `google-workspace`, and `personal-backlog`, with shared policy, assets and licenses. Mandatory repository rules remain binding; personal guidance takes precedence over equivalent optional repository recipes.
-- `guidance/AGENTS.md`: common task routing. `agents/*/AGENTS.md` preserves each native agent's current global instructions; sync renders these as regular files rather than replacing their differences with one generic document.
+- `workflows/`: portable assistance/representation and execution authorities, plus common safety boundaries.
+- `agents/`: runtime-specific model, UI, hook and plugin preferences, thin native workflow/role adapters, and Hermes transport/context mappings. Binaries, auth stores, live permission grants and account/session state remain local.
+- `skills/`: execution disciplines and shared writing, Google Workspace and role-aware backlog capabilities, with assets and licenses. `skills/POLICY.md` governs execution only; shared capabilities read `workflows/POLICY.md`. Mandatory repository contracts remain binding.
 - `mcp/catalog.json`: common server definitions and the `selected` list. Edit this list and run the same sync command; there are no separate agent-specific MCP inventories.
 - `cmux/`: terminal/sidebar preferences and inherited Ghostty configuration.
 - `integrations/atuin/config.toml`: quiet history settings; agent hook commands require Atuin on PATH.
@@ -108,23 +202,49 @@ Skills are linked into `~/.agents/skills`; Claude's native `~/.claude/skills` li
 
 ## MCP selection
 
-Only **Mobbin**, **UXPeak** and **GitHub** are defined and selected:
+**Mobbin**, **UXPeak**, **GitHub** and the personal read-only **Google Workspace** MCP are defined and selected:
 
 | MCP | Purpose | Endpoint |
 | --- | --- | --- |
 | Mobbin | UI/design references | `https://api.mobbin.com/mcp` |
 | UXPeak | UX/design reference access | `https://connect.uxpeak.com` |
 | GitHub | Repository and PR integration | `https://api.githubcopilot.com/mcp` |
+| Google personal | Read personal Docs/Sheets and discover Drive files | Local `workspace-mcp` over stdio |
 
-Authenticate through each agent's native flow; tokens are not shared or committed. Set `GITHUB_TOKEN` locally for GitHub; the common header reference is converted to Codex's native `bearer_token_env_var`. The unused MCP candidates and their Slack/Linear/Google Drive/Whiteboard plugin configurations have been removed.
+Authenticate HTTP servers through each agent's native flow; their tokens are not copied between clients or committed. Set `GITHUB_TOKEN` locally for GitHub; the common header reference becomes Codex's native `bearer_token_env_var`. The personal Google stdio server deliberately reuses one private, account-specific profile on this Mac; its credentials stay outside Git.
 
-MCP output locations are `~/.omp/agent/mcp.json`, `~/.pi/agent/mcp.json`, Codex's `[mcp_servers.*]`, and Claude's user-level `mcpServers` in private `~/.claude.json`. Current [Pi upstream docs](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md) support the native file; the installed Pi used for smoke verification has no native `mcp` command, so its MCP activation was not verified. No extension or tool upgrade is performed by sync.
+MCP output locations are `~/.omp/agent/mcp.json`, `~/.pi/agent/mcp.json`, Codex's `[mcp_servers.*]`, and Claude's user-level `mcpServers` in private `~/.claude.json`. [Pi supports the native file and MCP commands](https://github.com/earendil-works/pi/blob/v1.0.2/packages/coding-agent/docs/mcp.md). The personal Google entry was applied locally to OMP; full sync renders the shared catalog for the other clients but does not install the server or authenticate an account. Catalog paths use `@HOME@` and are rendered for the destination home.
 
 The shared catalog owns only its selected MCP names. Public marketplace references and enabled plugin flags are configuration examples; plugin implementations, logins, private provider/MCP settings and app-owned resources are installed or managed independently. Sync retires previously owned catalog names and leaves unrelated integrations alone.
 
 ## Google Workspace
 
-Google Docs, Sheets, and Gmail use the local [Google Workspace CLI](https://github.com/googleworkspace/cli), not another MCP server. All four terminal agents share its local OAuth login and the focused [`google-workspace` skill](skills/google-workspace/SKILL.md). Install the binary independently; `sync.py` links the skill but does not install tools or copy credentials:
+### Personal Docs and Sheets: read-only MCP
+
+[`workspace-mcp` 2.2.0](https://github.com/taylorwilsdon/google_workspace_mcp/tree/v2.2.0) runs locally as `google-personal`, with only the core Docs, Sheets and Drive services. It is a community project, not Google's preview MCP service. The selected `--read-only` flag narrows both tools and requested scopes; no Gmail or Calendar service is loaded.
+
+Install the server independently:
+
+```sh
+brew install uv
+uv tool install --python 3.12 workspace-mcp==2.2.0
+mkdir -p "$HOME/.config/workspace-mcp-personal/credentials"
+chmod 700 "$HOME/.config/workspace-mcp-personal" "$HOME/.config/workspace-mcp-personal/credentials"
+```
+
+Create or select a personal Google Cloud project. Enable only [Drive, Docs and Sheets APIs](https://console.cloud.google.com/flows/enableapi?apiid=drive.googleapis.com,docs.googleapis.com,sheets.googleapis.com). Configure Google Auth Platform with an **External** audience, add the personal account as a test user when in Testing, and create a **Desktop app** OAuth client. Save the downloaded JSON as `~/.config/workspace-mcp-personal/client_secret.json` with mode `600`; never paste its contents into chat or commit it. Testing-mode refresh tokens for these scopes expire after seven days.
+
+A Testing-mode `403 access_denied` saying only developer-approved testers can access the app means the account must be added under **Google Auth Platform → Audience → Test users → Add users**, in the same project as the OAuth client. Save the intended personal email there before retrying authorization; publishing the app is not required for this setup.
+
+The catalog supplies absolute command/client/credential paths and a private working directory. Google credentials are stored under `~/.config/workspace-mcp-personal/credentials`, separate from any `gws` or work-account login. Approve the first-use OAuth flow with the intended personal account; verify that identity before reading files.
+
+Requested scopes are `documents.readonly`, `spreadsheets.readonly`, `drive.readonly`, plus basic identity. **Drive read-only includes file contents, not just metadata, and is not restricted to Docs/Sheets or selected files by OAuth.** Keep actual searches/reads bounded to the user's request. Editing requires a separately authorized scope/connector change, not a CLI fallback.
+
+Local verification completed personal OAuth and checked the Google account identity, all six read-only MCP tools, an authenticated MCP Drive search, and minimal metadata reads from the Docs and Sheets APIs for one existing owned file each. No document/cell contents were retrieved and no files were changed. The selected email remains in the local OMP environment as `USER_GOOGLE_EMAIL`, not in the shared catalog; credential files use mode `600` inside a mode-`700` directory.
+
+### Other accounts or authorized CLI work
+
+The local [Google Workspace CLI](https://github.com/googleworkspace/cli) remains an optional route for another selected account, authorized edits or Gmail work. Use the focused [`google-workspace` skill](skills/google-workspace/SKILL.md), verify the account and do not reuse unrelated credentials to bypass the personal MCP's read-only boundary. Install the binary independently; `sync.py` links the skill but does not install tools or copy credentials:
 
 ```sh
 npm install -g --allow-scripts=@googleworkspace/cli @googleworkspace/cli
@@ -156,7 +276,7 @@ Gmail verification created a recipient-free disposable draft, read back its exac
 
 ## Personal work queue
 
-[`personal-backlog`](skills/personal-backlog/SKILL.md) is the sole workflow for commitment capture, updates/blockers, evidence-backed completion, morning briefs and next-action planning. Agents use `~/.local/bin/work-queue` regardless of their project directory. Main Assistant curates priority; queue access grants no additional work or side-effect authority. The former queue-root `AGENTS.md` is a discovery pointer only.
+[`personal-backlog`](skills/personal-backlog/SKILL.md) is the sole central queue authority. Main Assistant and Engineering Lead use its disclosed [manager procedures](skills/personal-backlog/manager.md) for authorized capture, priorities, task state, planning and evidence-backed closure. Executors use [collaborator reporting](skills/personal-backlog/collaborator.md) to append progress, blockers and evidence to existing relevant tasks only; they do not create, reprioritize, alter acceptance/status or close tasks. Role comes from the assignment, not the runtime. Agents use `~/.local/bin/work-queue` regardless of project directory; access grants no additional work or side-effect authority. The queue-root `AGENTS.md` is a discovery pointer only.
 
 Restore only this integration without applying unrelated agent settings, MCPs, native cmux preferences or hooks:
 
@@ -281,13 +401,19 @@ Run regressions with Python 3.11+: `python3 -B -m unittest discover -s tests -p 
 
 ## Hermes and OpenCode snapshots
 
-Full sync restores Hermes role instructions, workflow skills and bridge source. Allowlisted model/UI preferences are saved as each profile's `portable-preferences.json`; private `config.yaml` files are untouched. Apply selected preferences through `hermes --profile PROFILE config set KEY VALUE`, preserving local auth, MCPs and approvals. Personal records, handoffs, histories and bridge `targets.json` are excluded.
+Full sync restores Hermes native role selectors, runtime adapter skills and bridge source; portable assistance behavior lives in `workflows/assistance/`. Allowlisted model/UI preferences are saved as each profile's `portable-preferences.json`; private `config.yaml` files are untouched. Apply selected preferences through `hermes --profile PROFILE config set KEY VALUE`, preserving local auth, MCPs and approvals. Personal records, handoffs, histories and bridge `targets.json` are excluded.
 
 The weekday brief is saved as declarative `weekday-brief.json`, never as live `cron/jobs.json`. Sync does not create, enable or fire routines. Inspect `hermes --profile main-assistant cron list` before using the supported `cron edit` or `cron create` commands; preserve the approved weekday 7 AM local-time schedule and private delivery target.
 
 OpenCode snapshots retain TUI/local-plugin references and default-profile instruction routing. Install those plugins independently before applying their settings: the local herdr/hunk JavaScript and DCP workspace dependency are not copied. Provider/MCP credentials and permission configuration remain local.
 
 ## Verification
+
+Consolidation verification: 46 sync safety tests and 17 native OMP lifecycle tests passed. The new automatic-thinking, failed-restoration admission and branch-lifetime regressions failed before fixes and passed afterward. Native OMP resolved all 17 skills through `skill://`, read the method/policy/native selectors (27 paths total), and registered the installed personal adapter without a vendor package. The CLI was exercised in a quoted Unicode-containing home and on this Mac; local cutover updated/retired 24 paths and repeat sync changed zero. Protected runtime/assistant state and all 72 vendor files retained their fingerprints. No provider inference, agent restart, focus change, live task operation or active routine change was performed. The checks used a temporary TOML module on system Python 3.9; the supported prerequisite remains Python 3.11+. Model compliance and productivity across runtimes were not evaluated.
+
+Workflow separation verification: all 45 sync safety regressions and 15 native OMP designer regressions passed. The scoped workflow CLI wrote nothing in dry run, installed in a quoted Unicode-containing isolated home, and reported zero changes on repeat. OMP's native reader loaded 19 installed adapter/authority/skill paths without provider inference. The Mac's system Python 3.9 used a temporary pip-vendored TOML compatibility module for these checks; the supported sync prerequisite remains Python 3.11+. These checks prove installation, readability and tested safety, not model compliance in every runtime.
+
+The live `--only-workflows` application updated 25 paths, retained fingerprints for 13 protected runtime/task/record paths, and reported zero changes on repeat. Native executor and Hermes role entrypoints were read back after installation. Existing agents were not restarted; active jobs, task data, runtime settings and designer configuration were not changed. Independent Standards review found a declaration-metadata preservation regression; the fix retained local fields in both scoped and full isolated sync and is covered by the scoped safety regression.
 
 Textual Dock verification: 50 queue/restore regressions passed. A fresh hash-locked runtime installed successfully under a quoted, Unicode-containing home. Native Backlog smoke runs at 24/36/50 columns covered wrapped cards, search, completed filtering, Markdown details, scroll-preserving updates and source-loss recovery; a separate empty queue displayed its first native task live. Actual terminal mouse reports exercised list/detail scrolling and click-to-open. Terminal resize, normal/SIGTERM/SIGHUP exit and monochrome modes restored terminal modes without live owned children. The existing global Dock Tasks tab now runs Textual; native search/details/back worked without task-file changes. Scoped restore preserved personal tasks, the original Dock terminal and unrelated settings metadata. Visual inspection used Textual-rendered SVGs and native Dock text/interaction, not a cmux window screenshot.
 

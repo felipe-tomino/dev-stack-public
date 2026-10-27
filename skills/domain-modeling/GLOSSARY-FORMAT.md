@@ -1,6 +1,6 @@
 # GLOSSARY.md Format
 
-Read [SKILL.md](./SKILL.md) and the shared personal policy before using this fallback. Existing authoritative domain docs (including `docs/api`) and their formats win. This template never requires creating a parallel glossary.
+Use only for an authorized durable terminology update when no established format applies. Existing domain/API authorities and their locations win; this fallback never requires a parallel glossary.
 
 ## Structure
 
@@ -26,9 +26,9 @@ _Avoid_: Client, buyer, account
 
 ## Rules
 
-- **Be opinionated.** When multiple words exist for the same concept, pick the best one and list the others under `_Avoid_`.
-- **Keep definitions tight.** One or two sentences max. Define what it IS, not what it does.
-- **Only include terms specific to this project's context.** General programming concepts (timeouts, error types, utility patterns) don't belong even if the project uses them extensively. Before adding a term, ask: is this a concept unique to this context, or a general programming concept? Only the former belongs.
+- Use the context's established term; list avoided synonyms only when they prevent real ambiguity.
+- Keep definitions tight and distinguish the concept from neighboring domain terms.
+- Include context-specific business concepts, not general programming vocabulary.
 - **Group terms under subheadings** when natural clusters emerge. If all terms belong to a single cohesive area, a flat list is fine.
 
 ## Single vs multi-context repos
@@ -53,11 +53,4 @@ _Avoid_: Client, buyer, account
 - **Ordering ↔ Billing**: Shared types for `CustomerId` and `Money`
 ```
 
-Follow the established context structure:
-
-- If `GLOSSARY-MAP.md` exists, read it to find contexts.
-- If a glossary already owns the terminology, preserve its location and format.
-- If other domain/API documentation owns the terminology, update that instead.
-- If no authority exists, propose a document only for an actual durable domain decision and create it only when documentation work is requested or authorized by the current task; use the repository's existing convention.
-
-Infer the current context from docs and code. Ask only when a material context boundary remains ambiguous.
+Follow existing context links and locations. Update the document that already owns terminology. If no authority exists, create one only when the task's durable domain change justifies it; ask only about a material unresolved semantic boundary.

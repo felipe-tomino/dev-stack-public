@@ -1,5 +1,5 @@
-# Personal work queue
+# Codex execution adapter
 
-For personal commitment capture, status/blocker updates, completion evidence, morning briefs, or “what next”, read `~/.agents/skills/personal-backlog/SKILL.md`, the sole shared personal queue workflow. Queue access grants no new scope or side-effect permissions.
+Read `~/.agents/workflows/execution/AGENTS.md` as the user's execution workflow. This installation selects the executor role; personal-backlog access is collaborator-only.
 
-Before UI testing, screenshots, or creating test tabs/workspaces, MUST read the **Focus preservation** section in `~/.agents/skills/POLICY.md`.
+Use native file reads for portable instructions; shared skills live in `~/.agents/skills`.

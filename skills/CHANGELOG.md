@@ -1,5 +1,44 @@
 # Personal skills changelog
 
+## Context-based executor delegation
+
+- Keep coupled investigation, implementation and verification in the principal; separate workers by bounded context, not file count or specialty.
+- Clarify that one independent read-only reviewer may cover both Standards and Spec; preserve both axes and all permission boundaries.
+- Add evidence-based harness pruning and an on-demand strategy comparison reference. Ordinary wording edits do not trigger a benchmark, and cached prompt size is not a cost result.
+- Leave already conditional execution disciplines and all shared assistance capabilities unchanged.
+
+## Personal Google read-only connector
+
+- Prefer the account-specific `google-personal` MCP for personal Docs/Sheets when the current runtime exposes it.
+- Preserve the read-only boundary across connector/account selection; missing authentication is not permission to reuse a work login or grant write access.
+- Keep `gws` instructions for other explicitly selected, authorized account work; Gmail is not connected by the personal MCP.
+
+## Principal-first UI/UX execution
+
+- Keep UI/UX reasoning in the principal's existing context through supported model/role switching, with Claude Opus 5.5 High unchanged.
+- Delegate only substantial separable visual deliverables under the execution method's delegation rules; a model choice alone does not warrant another agent.
+
+## Minimal UI/UX designer
+
+- Replace visual scope branches with one short guide: UI/UX reasoning, advice and implementation use Claude Opus 5.5 High, including small adjustments.
+- Use UXPeak for relevant usability guidance and Mobbin when concrete visual patterns help; keep task size, existing design, accessibility and verification proportional.
+- Preserve the execution/assistance split and native restoration safeguards. Remove the old instruction that localized visual work should stay on the normal model.
+
+## Personal execution consolidation
+
+- Merge the implementation process into the portable execution method and the interview wrapper into canonical explicit `grilling`; retire both redundant installed wrappers.
+- Refocus twelve retained disciplines on distinct uncertainty and completion criteria; disclose references instead of repeating governance. Keep domain/transaction safety, meaningful TDD, separate review axes and explicit publication permissions.
+- Add personal `visual-design`, selecting localized corrections or full visual work without importing an external 12-skill workflow.
+- Record each disposition and accepted/rejected reference mechanism in the README inventory; retain original attribution and mark removed wrappers in the historical manifest.
+- Verify workflow CLI installation and repeat safety plus native OMP model/lifecycle transitions; no provider inference or live task changes.
+
+## Role-separated workflows
+
+- Separate portable assistance authority from execution methodology; runtime-native files now select the assigned role.
+- Shared writing, no-ai-slop, Google Workspace and personal-backlog skills read the common workflow policy rather than execution-only building policy.
+- Split backlog guidance into manager procedures for Main Assistant/Engineering Lead and collaborator reports on existing tasks for executors. Keep one queue authority and preserve common safe read/write procedures.
+- Verified isolated scoped installation, zero-change repeat and 19 native OMP reads; no provider inference or live queue mutations.
+
 ## Personal backlog
 
 - Added the original agent-neutral `personal-backlog` skill as the sole personal queue workflow. Concrete native CLI procedures cover capture, additive evidence, blockers, status transitions, completion and next-action planning while retaining existing authorization boundaries.

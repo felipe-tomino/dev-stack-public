@@ -1,6 +1,6 @@
 # KISS-first design principles
 
-Read `~/.agents/skills/POLICY.md` first; it owns the governing KISS policy and mandatory-contract boundaries. This reference makes SOLID, DRY, Clean Architecture, and component principles concrete. Apply them to the actual operation, callers, domain rules, and expected changes; their intent must hold without prescribing a framework or folder tree.
+The execution policy (`~/.agents/skills/POLICY.md`) owns engineering quality; the execution workflow owns process. Consult the relevant sections here for SOLID, DRY, dependency-direction and component decisions, not as a required architecture checklist.
 
 ## Choose the smallest adequate design
 
@@ -80,4 +80,4 @@ A query should honor its documented read semantics; a command should make its mu
 
 ## Completion criterion
 
-The selected design preserves the observable contract and necessary invariants, has coherent ownership and dependency direction, and uses no structure without a present purpose. Explain the material tradeoff in ordinary domain terms, then verify the changed behavior through its established seam. A named pattern, a small file, or a clean diagram is not evidence that these criteria hold.
+The selected design preserves the observable contract and necessary invariants, has coherent ownership and dependency direction, and uses no structure without a present purpose. Explain the material tradeoff in ordinary domain terms. The execution workflow owns proof through the established seam; a named pattern, small file or diagram is not evidence.
