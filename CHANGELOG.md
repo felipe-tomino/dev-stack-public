@@ -1,5 +1,13 @@
 # Changelog
 
+## Select MCPs per work or personal Mac
+
+- Add `sync.py --profile work|personal`. Full sync remembers the selection in the destination's private ownership record; later runs reuse it. Macs without a saved choice default to `work`.
+- Keep Mobbin, UXPeak and GitHub shared. Register personal Google only in the `personal` profile; switching to `work` removes its owned registrations from OMP, Pi, Claude and Codex without deleting credentials or unrelated MCPs.
+- Keep all other settings shared. Dry run does not save a choice; scoped sync preserves it and refuses explicit profile switches. Document shared and profile-only MCP lists without storing machine identities or credentials in Git.
+
+Verification: all 48 sync safety tests passed, including native cmux/Codex integration. An actual CLI smoke in a quoted, Unicode-containing home performed a no-write dry run, remembered personal selection, switched all four clients to work without personal Google, and made zero changes on both saved-profile repeats. Separate personal/work homes retained independent choices with zero changes on repeat. Applied `work` on this Mac and verified that all four existing MCP maps stayed unchanged and personal Google remained absent; repeat dry run showed only the two existing native cmux/Codex hook rewrites. Sync did not provision a personal OAuth profile or server.
+
 ## Document cross-Mac synchronization and local reconciliation
 
 - Add a short root `AGENTS.md` that routes authorized Mac installation/synchronization requests to the README procedure; opening the repository grants no permission to change the machine.

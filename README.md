@@ -27,9 +27,9 @@ Use this procedure when the user requests installation or synchronization on a M
 
 1. Confirm the requested destination and inspect the checkout for local changes. Update it to the intended revision without discarding local work. Check the prerequisites under [Sync this Mac](#sync-this-mac) and the integrations actually needed on that Mac; sync does not install all tools, dependencies or accounts.
 2. Inspect the local ownership record at `~/.local/state/dev-stack/managed.json`, installed instructions, skill links, extensions and relevant shell startup entries. Compare them with the current repository and the applicable changelog entries. Establish both origin and obsolescence before treating anything as a removal candidate; a matching filename or absence from the repository is not enough.
-3. Run `python3 sync.py --dry-run` from the checkout. Full sync retires obsolete links recorded as its own and reconciles owned MCP names; `--only-workflows` does not retire obsolete links. Neither mode is a general legacy cleanup. Resolve reported ownership conflicts rather than weakening checks or deleting the conflicting files blindly.
+3. Choose the Mac's `work` or `personal` MCP profile under [MCP selection](#mcp-selection), then run `python3 sync.py --profile work --dry-run` (or `--profile personal`). Later runs can omit the flag to reuse the saved local choice. Full sync retires obsolete links recorded as its own and reconciles owned MCP names; `--only-workflows` does not retire obsolete links. Neither mode is a general legacy cleanup. Resolve reported ownership conflicts rather than weakening checks or deleting the conflicting files blindly.
 4. For confirmed dev-stack leftovers covered by the requested reconciliation, make a private backup outside active discovery directories, then remove only those leftovers. Check native discovery roots for aliases to removed skills, including dangling links, without touching unrelated skills. Use non-recursive directory removal for empty remnants. Preserve customized or uncertain files and report the exact conflict for a decision. If cleanup was not authorized, obtain permission before deletion.
-5. Repeat the dry run after resolving conflicts, review its scope, then run `python3 sync.py`. Do not replace full sync with `--only-workflows` when runtime settings, MCPs or generic managed-link retirement are part of the request. Provision the [dedicated headless Chromium](#dedicated-headless-chromium) separately when browser automation is needed; full sync installs its configuration but does not download it.
+5. Repeat the dry run after resolving conflicts, review its scope, then run `python3 sync.py --profile work` (or `--profile personal`, matching the preview). Do not replace full sync with `--only-workflows` when runtime settings, MCPs or generic managed-link retirement are part of the request. Provision the [dedicated headless Chromium](#dedicated-headless-chromium) separately when browser automation is needed; full sync installs its configuration but does not download it.
 6. Verify the installed configuration and actual affected integrations, not just command success. Repeat `python3 sync.py --dry-run` and resolve unexplained planned file changes. Verify browser work through native OMP headless automation when in scope. Restart/reload the affected agents normally, with the user's permission before interrupting sessions, and inspect fresh skill discovery. Report changes, preserved conflicts, missing prerequisites and unverified behavior.
 
 Preserve credentials, personal browser profiles/caches, private assistant records, task data, histories and unrelated tools/configuration. Do not remove everything missing from Git, copy credentials between Macs, uninstall a project's test framework or reintroduce compatibility aliases, automatic legacy migrations or a second browser integration.
@@ -232,20 +232,31 @@ Skills are linked into `~/.agents/skills`; Claude's native `~/.claude/skills` li
 
 ## MCP selection
 
-**Mobbin**, **UXPeak**, **GitHub** and the personal read-only **Google Workspace** MCP are defined and selected:
+Profiles select MCPs for each Mac; other synced settings remain shared.
 
-| MCP | Purpose | Endpoint |
-| --- | --- | --- |
-| Mobbin | UI/design references | `https://api.mobbin.com/mcp` |
-| UXPeak | UX/design reference access | `https://connect.uxpeak.com` |
-| GitHub | Repository and PR integration | `https://api.githubcopilot.com/mcp` |
-| Google personal | Read personal Docs/Sheets and discover Drive files | Local `workspace-mcp` over stdio |
+| MCP | Purpose | Endpoint | Profile |
+| --- | --- | --- | --- |
+| Mobbin | UI/design references | `https://api.mobbin.com/mcp` | Both |
+| UXPeak | UX/design reference access | `https://connect.uxpeak.com` | Both |
+| GitHub | Repository and PR integration | `https://api.githubcopilot.com/mcp` | Both |
+| Google personal | Read personal Docs/Sheets and discover Drive files | Local `workspace-mcp` over stdio | Personal only |
+
+Choose once on each Mac:
+
+```sh
+python3 sync.py --profile work --dry-run
+python3 sync.py --profile work
+```
+
+On a personal Mac, use `--profile personal`. A successful full sync saves the choice in that destination's private `~/.local/state/dev-stack/managed.json`; later `python3 sync.py` runs reuse it. A Mac without a saved choice defaults to `work`, so personal Google requires opt-in. Dry run previews the requested profile without saving it. Scoped `--only-*` modes preserve the choice and reject an explicit `--profile`; use full sync to change it.
+
+In [`mcp/catalog.json`](mcp/catalog.json), `selected` lists shared servers; `profiles.work` and `profiles.personal` add servers only for that profile. To make a server work-only, define it in `mcpServers`, put its name in `profiles.work`, and leave it out of `selected` and `profiles.personal`. Switching profiles removes unselected catalog-owned registrations from all four clients, preserving unrelated MCPs and private credential stores. Profile selection does not install servers, create accounts or copy credentials between Macs.
 
 Authenticate HTTP servers through each agent's native flow; their tokens are not copied between clients or committed. Set `GITHUB_TOKEN` locally for GitHub; the common header reference becomes Codex's native `bearer_token_env_var`. The personal Google stdio server deliberately reuses one private, account-specific profile on this Mac; its credentials stay outside Git.
 
-MCP output locations are `~/.omp/agent/mcp.json`, `~/.pi/agent/mcp.json`, Codex's `[mcp_servers.*]`, and Claude's user-level `mcpServers` in private `~/.claude.json`. [Pi supports the native file and MCP commands](https://github.com/earendil-works/pi/blob/v1.0.2/packages/coding-agent/docs/mcp.md). The personal Google entry was applied locally to OMP; full sync renders the shared catalog for the other clients but does not install the server or authenticate an account. Catalog paths use `@HOME@` and are rendered for the destination home.
+MCP output locations are `~/.omp/agent/mcp.json`, `~/.pi/agent/mcp.json`, Codex's `[mcp_servers.*]`, and Claude's user-level `mcpServers` in private `~/.claude.json`. [Pi supports the native file and MCP commands](https://github.com/earendil-works/pi/blob/v1.0.2/packages/coding-agent/docs/mcp.md). Full sync renders the selected profile for all four clients but does not install servers or authenticate accounts. Catalog paths use `@HOME@` and are rendered for the destination home.
 
-The shared catalog owns only its selected MCP names. Public marketplace references and enabled plugin flags are configuration examples; plugin implementations, logins, private provider/MCP settings and app-owned resources are installed or managed independently. Sync retires previously owned catalog names and leaves unrelated integrations alone.
+The shared catalog owns all names defined in `mcpServers`, including entries unselected by the active profile. Public marketplace references and enabled plugin flags are configuration examples; plugin implementations, logins, private provider/MCP settings and app-owned resources are installed or managed independently. Sync retires previously owned catalog names and leaves unrelated integrations alone.
 
 ## Google Workspace
 

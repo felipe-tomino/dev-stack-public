@@ -384,13 +384,16 @@ def provision_browser(home, dry_run):
             subprocess.run(command, env=environment, check=True)
 
 
-def build_plan(home):
+def build_plan(home, profile):
     state_path = home / ".local/state/dev-stack/managed.json"
     previous = load_json(state_path)
     catalog = json.loads(source_bytes("mcp/catalog.json", home))
     if not isinstance(catalog, dict):
         raise ValueError(f"Expected JSON object: {ROOT / 'mcp/catalog.json'}")
-    selected = {name: catalog["mcpServers"][name] for name in catalog["selected"]}
+    if not isinstance(profile, str) or profile not in catalog["profiles"]:
+        raise ValueError(f"Unknown machine profile: {profile!r}; choose work or personal with --profile")
+    names = catalog["selected"] + catalog["profiles"][profile]
+    selected = {name: catalog["mcpServers"][name] for name in names}
     owned = set(catalog["mcpServers"]) | set(previous.get("servers", []))
     plan = hermes_adapter_plan(home)
     for source, target in FILES.items():
@@ -435,7 +438,8 @@ def build_plan(home):
     plan.update(browser_plan(home))
     retired = {home / target: Path(source) for target, source in previous.get("links", {}).items() if home / target not in plan}
     managed_links = {path: content for path, content in plan.items() if isinstance(content, Path)}
-    state = {"servers": sorted(catalog["mcpServers"]), "links": {str(p.relative_to(home)): str(s) for p, s in managed_links.items()}}
+    state = {"profile": profile, "servers": sorted(catalog["mcpServers"]),
+             "links": {str(p.relative_to(home)): str(s) for p, s in managed_links.items()}}
     adapter = home / DESIGNER_ADAPTER
     if adapter in plan:
         state["designer_adapter_sha256"] = hashlib.sha256(plan[adapter]).hexdigest()
@@ -456,7 +460,10 @@ def check_destination(path, home, link=None):
 
 
 def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=False, only_designer=False,
-         only_workflows=False):
+         only_workflows=False, profile=None):
+    scoped = only_backlog or only_hermes or only_browser or only_designer or only_workflows
+    if profile is not None and scoped:
+        raise ValueError("--profile requires a full sync; omit --only-*")
     state_path = home / ".local/state/dev-stack/managed.json"
     previous = load_json(state_path)
     if only_browser:
@@ -482,8 +489,9 @@ def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=Fals
                 plan[home / DESIGNER_ADAPTER]).hexdigest()
         plan[state_path] = json_bytes(state)
     else:
-        plan, retired = build_plan(home)
-    scoped = only_backlog or only_hermes or only_browser or only_designer or only_workflows
+        profile = profile if profile is not None else previous.get("profile", "work")
+        plan, retired = build_plan(home, profile)
+        print(f"Machine profile: {profile}")
     native = not scoped and sys.platform == "darwin" and home == Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
     preferences = load_json(ROOT / "cmux/preferences.json") if not scoped else {}
     for name, value in preferences.items():
@@ -593,6 +601,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true", help="Show file changes without writes or native commands")
     parser.add_argument("--home", type=Path, default=Path.home(), help="Destination home; isolated homes skip native macOS preferences/hooks")
+    parser.add_argument("--profile", choices=("work", "personal"),
+                        help="Select and remember this Mac's MCP profile during full sync (default: saved profile, otherwise work)")
     scoped = parser.add_mutually_exclusive_group()
     scoped.add_argument("--only-backlog", action="store_true", help="Restore queue configuration and skill links only; no agent settings, native preferences, hooks or service activation")
     scoped.add_argument("--only-hermes", action="store_true", help="Install the Hermes lifecycle adapter and preserve its original launcher; no profile, consent, auth or native preference changes")
@@ -602,7 +612,7 @@ def main():
     args = parser.parse_args()
     try:
         sync(args.home.expanduser().resolve(), args.dry_run, args.only_backlog, args.only_hermes,
-             args.only_browser, args.only_designer, args.only_workflows)
+             args.only_browser, args.only_designer, args.only_workflows, profile=args.profile)
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
         print(f"Sync failed: {error}", file=sys.stderr)
         return 1

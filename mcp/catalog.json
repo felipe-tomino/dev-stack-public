@@ -1,5 +1,9 @@
 {
-  "selected": ["mobbin", "uxpeak", "github", "google-personal"],
+  "selected": ["mobbin", "uxpeak", "github"],
+  "profiles": {
+    "work": [],
+    "personal": ["google-personal"]
+  },
   "mcpServers": {
     "google-personal": {
       "type": "stdio",

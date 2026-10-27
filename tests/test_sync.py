@@ -300,6 +300,82 @@ class SyncSafetyTests(unittest.TestCase):
                 self.assertEqual(json.loads(config.read_text())["automation"], {
                     **automation, "socketControlMode": "cmuxOnly"})
 
+    def installed_mcp_servers(self):
+        servers = {
+            agent: json.loads((self.home / relative).read_text())["mcpServers"]
+            for agent, relative in (
+                ("omp", ".omp/agent/mcp.json"), ("pi", ".pi/agent/mcp.json"),
+                ("claude", ".claude.json"))
+        }
+        servers["codex"] = tomllib.loads((self.home / ".codex/config.toml").read_text())["mcp_servers"]
+        return servers
+
+    def test_profiles_persist_and_switch_owned_servers_without_removing_private_servers(self):
+        private = {"url": "https://private.example.invalid"}
+        for relative in (".omp/agent/mcp.json", ".pi/agent/mcp.json", ".claude.json"):
+            path = self.home / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"mcpServers": {"private": private}}))
+        codex = self.home / ".codex/config.toml"
+        codex.parent.mkdir()
+        codex.write_text('[mcp_servers.private]\nurl = "https://private.example.invalid"\n')
+        for options, personal in (
+                ((), False), (("--profile", "personal"), True), ((), True),
+                (("--profile", "work"), False), ((), False)):
+            with self.subTest(options=options, personal=personal):
+                result = self.run_sync(*options)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                for agent, servers in self.installed_mcp_servers().items():
+                    expected = {"mobbin", "uxpeak", "github", "private"}
+                    if personal:
+                        expected.add("google-personal")
+                        self.assertEqual(servers["google-personal"]["command"],
+                                         str(self.home / ".local/bin/workspace-mcp"))
+                    self.assertEqual(set(servers), expected, agent)
+                    self.assertEqual(servers["private"], private, agent)
+        self.assertFalse((self.home / ".config/workspace-mcp-personal").exists())
+
+    def test_profile_dry_run_does_not_change_saved_choice_or_installed_servers(self):
+        result = self.run_sync("--profile", "work")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        def snapshot():
+            return {str(path.relative_to(self.home)):
+                    os.readlink(path) if path.is_symlink() else path.read_bytes() if path.is_file() else None
+                    for path in self.home.rglob("*")}
+        before = snapshot()
+        result = self.run_sync("--profile", "personal", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(snapshot(), before)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for servers in self.installed_mcp_servers().values():
+            self.assertNotIn("google-personal", servers)
+
+    def test_invalid_saved_profile_refuses_before_sync_writes(self):
+        state = self.home / ".local/state/dev-stack/managed.json"
+        state.parent.mkdir(parents=True)
+        original = json.dumps({"profile": "typo", "links": {}, "servers": []})
+        state.write_text(original)
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("Unknown machine profile", result.stderr)
+        self.assertEqual(state.read_text(), original)
+        self.assertFalse((self.home / ".omp").exists())
+        self.assertFalse((self.home / ".config").exists())
+
+    def test_scoped_sync_preserves_profile_and_refuses_profile_switches(self):
+        rejected = self.run_sync("--only-workflows", "--profile", "personal")
+        self.assertEqual(rejected.returncode, 1, rejected.stdout + rejected.stderr)
+        self.assertEqual(list(self.home.iterdir()), [])
+        selected = self.run_sync("--profile", "personal")
+        self.assertEqual(selected.returncode, 0, selected.stdout + selected.stderr)
+        scoped = self.run_sync("--only-workflows")
+        self.assertEqual(scoped.returncode, 0, scoped.stdout + scoped.stderr)
+        repeated = self.run_sync()
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        for servers in self.installed_mcp_servers().values():
+            self.assertIn("google-personal", servers)
+
     def test_claude_keeps_private_state_and_same_endpoint_auth(self):
         mobbin = {"type": "http", "url": "https://api.mobbin.com/mcp",
                   "headers": {"Authorization": "Bearer local-test-credential"}}
