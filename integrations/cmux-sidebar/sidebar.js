@@ -456,6 +456,40 @@ function shortDirectory(path, remote) {
   return path;
 }
 
+function openAgents(workspace) {
+  let agents = (workspace.agents ?? []).filter((agent) =>
+    agent.status !== "ended" && Number.isInteger(agent.pid) && agent.pid > 0 &&
+    workspace.tabs?.some((tab) => tab.id === agent.panelId)
+  );
+  agents = agents.filter((agent) => {
+    if (agent.kind !== "omp" || typeof agent.id !== "string") return true;
+    const alias = agent.id.match(/(?:^|[/_])([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i);
+    // Prefer the hook's UUID over its restored transcript-path alias, but only
+    // for this exact runtime owner. Never merge histories or separate processes.
+    return !alias || !agents.some((other) => other.kind === "omp" &&
+      other.panelId === agent.panelId && other.pid === agent.pid &&
+      other.id.toLowerCase() === alias[1].toLowerCase());
+  });
+  // OMP has one top-level session per process. Until native ownership retirement
+  // lands, represent each PID/terminal by its most recently active session.
+  const owners = new Map();
+  for (const agent of agents) {
+    if (agent.kind !== "omp") continue;
+    const key = JSON.stringify([agent.panelId, agent.pid]);
+    const previous = owners.get(key);
+    const activity = agent.lastActivityAt ?? 0;
+    const previousActivity = previous?.lastActivityAt ?? 0;
+    // Native timestamps have second precision; break ties independently of
+    // registry iteration order rather than flickering between session IDs.
+    if (!previous || activity > previousActivity ||
+        (activity === previousActivity && agent.id > previous.id)) {
+      owners.set(key, agent);
+    }
+  }
+  return agents.filter((agent) => agent.kind !== "omp" ||
+    owners.get(JSON.stringify([agent.panelId, agent.pid])) === agent);
+}
+
 function workspaceMetadata(workspace) {
   if (!workspace || rowPreferences.sidebarHideAllDetails) return [];
   const rows = [];
@@ -473,10 +507,7 @@ function workspaceMetadata(workspace) {
     });
   }
   if (rowPreferences.sidebarShowStatusPills) {
-    for (const agent of workspace.agents ?? []) {
-      // Restored history can be idle without a process; it is not an open agent.
-      if (agent.status === "ended" || !Number.isInteger(agent.pid) || agent.pid <= 0) continue;
-      if (!workspace.tabs?.some((tab) => tab.id === agent.panelId)) continue;
+    for (const agent of openAgents(workspace)) {
       rows.push({ id: "agent:" + agent.id, kind: "agent", agent });
     }
   }

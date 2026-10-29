@@ -1,5 +1,13 @@
 # Changelog
 
+## Suppress duplicate OMP sidebar owners
+
+- Show one OMP row per exact PID/terminal binding, choosing the most recently active session with an order-independent tie-break.
+- Prefer a UUID registration over its transcript-path alias only within that same runtime owner. Preserve separate processes, terminals, other agent kinds, selected-session status, conversation history and resume bindings.
+- Keep native registry reconciliation separate: this display guard cannot establish process generations or fence delayed lifecycle events.
+
+Verification: all 30 sidebar tests and 48 sync safety tests passed. The duplicate-owner, alias and timestamp-tie regressions failed before their fixes. Installed the generated sidebar with a private backup, preserving its embedded data/preferences/placement; native validation and scoped reload passed. Rendering the installed script with cmux's JavaScript runtime and live registry/terminal data reduced agent rows from 11 to 9, collapsing the app-builder terminal's three OMP sessions to one without changing other rows. All 40 native registry records and checked agent processes remained intact. No native app build, agent restart, hook regeneration or registry cleanup was performed.
+
 ## Select MCPs per work or personal Mac
 
 - Add `sync.py --profile work|personal`. Full sync remembers the selection in the destination's private ownership record; later runs reuse it. Macs without a saved choice default to `work`.
