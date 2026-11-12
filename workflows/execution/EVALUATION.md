@@ -25,13 +25,13 @@ Useful cases to select from the user's actual executor work:
 
 ## Run and compare
 
-1. Run both variants against isolated, equivalent inputs. Use authorized accounts only; do not replay production writes, copy credentials or enlarge permissions for an evaluation.
+1. Run both variants against isolated, equivalent inputs. Use authorized accounts only; allow no production side effects, credential copying or enlarged permissions for an evaluation.
 2. Check actual task outcomes against acceptance, including failure paths. Record which skill or worker was selected, but do not count correct routing or a convincing final message as task completion.
-3. Record correctness, omitted requirements/regressions, time to verified completion, total principal-plus-worker usage/cost when available, and user intervention/integration rework. Report unavailable metrics rather than estimating them. Cached prompt length alone is not a cost measure.
+3. Record time to first actionable, evidence-backed finding, time to first demonstrated working slice, and time to verified completion. Also record correctness, failures/omitted requirements/regressions, user intervention/integration rework and total principal-plus-worker usage/cost when available. Use the matched cases and model settings above; report unavailable metrics rather than estimating them. Cached prompt length alone is not a cost measure.
 4. Inspect individual tasks that changed from pass to fail as well as aggregate results. Keep the folded strategy when it preserves required outcomes and boundaries with justified coordination benefits; retain or restore the worker when its context separation materially improves results or enforces a necessary capability boundary.
 
 ## Keep maintenance proportional
 
-Instruction wording edits need link/discovery checks, not a new benchmark. A runtime prompt-template change needs native rendering/discovery and tool/permission preservation checks; those checks are not productivity evidence. Broader efficiency claims require the task comparison above. Revisit temporary model workarounds when actual evidence or a model change calls them into question, not on a compulsory maintenance schedule. Rarely used authorization or data-integrity protections are not dead weight.
+Instruction wording edits need link/discovery checks, not a new benchmark or workflow run; wording alone demonstrates no latency or productivity gain. A runtime prompt-template change needs native rendering/discovery and tool/permission preservation checks; those checks are not productivity evidence. Broader efficiency claims require the task comparison above. Revisit temporary model workarounds when actual evidence or a model change calls them into question, not on a compulsory maintenance schedule. Rarely used authorization or data-integrity protections are not dead weight.
 
 Report the tested variants, model/runtime, tasks/repetitions, observed outcomes and limits in the authorized delivery or existing change record. Remove temporary probes and deactivate the losing variant; do not leave compatibility wrappers, install an evaluation framework or add a permanent specialist team merely to run the comparison.

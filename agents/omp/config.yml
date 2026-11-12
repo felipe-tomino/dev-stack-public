@@ -18,6 +18,19 @@ skills:
     - ~/.agents/skills
   ignoredSkills:
     - devcontainer
+tools:
+  xdevDocs: builtins
+  xdevNotices: false
+retry:
+  maxRetries: 3
+  maxDelayMs: 10000
+  modelFallback: true
+  rateLimitWalksChain: true
+providers:
+  streamFirstEventTimeoutSeconds: 60
+  streamIdleTimeoutSeconds: 120
+error:
+  notify: "on"
 async:
   widgets: false
 browser:

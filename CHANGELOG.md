@@ -1,5 +1,18 @@
 # Changelog
 
+## Reduce executor time to first useful feedback
+
+- Ask for an early evidence-backed finding and demonstrate the smallest useful runtime slice before lengthy completion gates; retain required checks and consequential independent review.
+- Replace file-count review defaults with risk-based review instructions, preserving explicit user counts and native frozen-source restrictions. Do not install an unsupported native command subclass.
+- Load mounted-tool documentation on demand, retain discovery and permission boundaries, and document the native MCP appendix that remains outside the template.
+- Bound native retries and provider silence; optional enrichment must not hold an already-supported answer. Measure actionable findings, working results and verified completion separately.
+- Recover automatic designer stages through API → Claude CLI → Sol → Astra using native recovery. Preserve manual pins, conversation/tool continuity, cancellation, session transitions and the previous model/effort. Restore only owned runtime settings without freezing lower-layer changes; report fallback with notifications, not queued task messages.
+- Add a bounded CLI backend with validated tool-choice/proposal contracts, existing CLI login, private process-group cancellation and no ordinary CLI tools or MCP. Managed-policy hooks remain explicitly allowed outside OMP approvals; their effects can repeat and cannot be rolled back.
+
+Verification: on OMP 18.16.0, all 32 native OMP test methods passed, including 30 CLI subprocess/constraint cases. All 49 runnable sync safety tests passed; one native cmux/Codex case skipped. Nine runtime settings were parsed through native OMP and read back after installation. The broader suite reported 118 passes, eight skips and two errors: missing optional `textual`, and an unchanged macOS queue test assuming `os.waitid` exists. The latter reproduced in isolation.
+
+Applied the authorized full `work` sync: nine file changes with private backups, followed by zero planned file changes. Verified installed adapter bytes/ownership, helper link, backup permissions and fresh native tool/command discovery using the actual installed adapter. No active sessions restarted; cmux CLI was unavailable, so native hooks/sidebar activation skipped. Claude CLI has no independent login on this Mac; authenticated CLI inference and measured task-latency gains remain unverified. Reload/resume OMP to load the new adapter and template.
+
 ## Suppress duplicate OMP sidebar owners
 
 - Show one OMP row per exact PID/terminal binding, choosing the most recently active session with an order-independent tie-break.

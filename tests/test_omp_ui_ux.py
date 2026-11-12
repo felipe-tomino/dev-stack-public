@@ -1,4 +1,4 @@
-"""Offline native OMP lifecycle regressions (OMP binary only; no inference).
+"""Offline native OMP lifecycle regressions (Python 3.11 + OMP; no inference).
 
 Run: python3 -m unittest discover -s tests -p test_omp_ui_ux.py -v
 Optional binary override: OMP_DESIGNER_TEST_OMP. Missing OMP skips;
@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -21,6 +22,7 @@ HARNESS = r'''
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { cfgRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/settings";
 
 export default function regression(pi) {
   pi.on("session_start", async (_event, ctx) => {
@@ -160,6 +162,36 @@ export default function regression(pi) {
         normalSelected();
         success(await run.action("finish"));
         normalSelected();
+      });
+      await check("scoped_recovery_policy", async run => {
+        const before = cfgRetryFallbackChains.get(settings);
+        success(await run.action("start"));
+        const chains = cfgRetryFallbackChains.get(settings);
+        assert.deepEqual(chains[`${key(designer)}:high`], [
+          "dev-stack-claude-cli/claude-opus-5-5:high",
+          "openai-codex/gpt-6.1-sol:high",
+          "openai-codex/gpt-6-astra:high",
+        ]);
+        success(await run.action("finish"));
+        assert.deepEqual(cfgRetryFallbackChains.get(settings), before);
+        success(await run.action("start"));
+        await run.command();
+        assert.deepEqual(cfgRetryFallbackChains.get(settings), before, "manual takeover retained automatic substitution");
+        await run.command();
+        normalSelected();
+      });
+      await check("recovery_override_ownership", async run => {
+        const original = cfgRetryFallbackChains.get(settings);
+        cfgRetryFallbackChains.override(settings, { private: ["private/fallback"] });
+        try {
+          success(await run.action("start"));
+          success(await run.action("finish"));
+          assert.deepEqual(cfgRetryFallbackChains.get(settings), { private: ["private/fallback"] });
+          success(await run.action("start"));
+          cfgRetryFallbackChains.override(settings, { later: ["later/fallback"] });
+          success(await run.action("finish"));
+          assert.deepEqual(cfgRetryFallbackChains.get(settings), { later: ["later/fallback"] }, "overwrote a later runtime owner");
+        } finally { cfgRetryFallbackChains.override(settings, original); }
       });
       await check("terminal_and_abort", async run => {
         for (const messages of [[], [{ role: "assistant", stopReason: "aborted", content: [] }]]) {
@@ -366,6 +398,10 @@ class NativeDesignerRoutingTests(unittest.TestCase):
         agent = home / ".omp/agent"
         project.mkdir()
         agent.mkdir(parents=True)
+        installed = subprocess.run([sys.executable, str(ROOT / "sync.py"), "--home", str(home),
+                                    "--only-designer"], capture_output=True, text=True, timeout=30)
+        if installed.returncode:
+            raise AssertionError(installed.stdout + installed.stderr)
         (agent / "mcp.json").write_text('{"mcpServers":{}}\n')
         (agent / "config.yml").write_text("modelRoles: {}\n")
         harness, report = root / "regression.ts", root / "report.json"
@@ -375,7 +411,7 @@ class NativeDesignerRoutingTests(unittest.TestCase):
                    XDG_CACHE_HOME=str(home / ".cache"), XDG_DATA_HOME=str(home / ".local/share"),
                    PI_CODING_AGENT_DIR=str(agent), OMP_AGENT_DIR=str(agent),
                    ANTHROPIC_API_KEY="native-routing-test-not-a-real-key",
-                   DESIGNER_TEST_ADAPTER=str(ROOT / "integrations/omp-ui-ux/extension.ts"),
+                   DESIGNER_TEST_ADAPTER=str(agent / "extensions/ui-ux-role.ts"),
                    DESIGNER_TEST_REPORT=str(report))
         stdout, stderr = root / "stdout.log", root / "stderr.log"
         with stdout.open("w") as out, stderr.open("w") as err:
@@ -418,6 +454,12 @@ class NativeDesignerRoutingTests(unittest.TestCase):
 
     def test_actual_role_effort_and_explicit_finish_without_gates(self):
         self.assert_native_case("start_finish")
+    def test_automatic_recovery_chain_is_removed_for_finish_and_manual_pins(self):
+        self.assert_native_case("scoped_recovery_policy")
+
+    def test_recovery_preserves_existing_and_later_runtime_overrides(self):
+        self.assert_native_case("recovery_override_ownership")
+
 
     def test_terminal_yield_abort_and_preaborted_signal(self):
         self.assert_native_case("terminal_and_abort")

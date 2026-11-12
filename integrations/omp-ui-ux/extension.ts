@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 import type { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { resolveRoleSelection } from "@oh-my-pi/pi-coding-agent/config/model-resolver";
+import { cfgRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/settings";
+import { CLI_MODEL, CLI_PROVIDER, registerClaudeCli } from "./claude-cli";
 
 const skill = "~/.agents/skills/visual-design/SKILL.md";
 const routing = `[PERSONAL VISUAL ROUTING]
@@ -13,15 +15,24 @@ with UXPeak guidance and Mobbin references as support.
 Call designer action "finish" before non-UI/UX work or the final response.
 If exposed as xd://designer, read its schema and invoke it with write and JSON.
 Backend-only work, UI-preserving wiring and designer-tooling configuration stay normal.
-Start must succeed; report role-selection diagnostics without substituting another model.
+Automatic stages may recover through Claude CLI, then Sol, then Astra; report each fallback.
+Explicit model choices and manual /designer pins do not authorize substitution.
 Manual /designer is a session-local pin until toggled off and takes precedence.
 [/PERSONAL VISUAL ROUTING]`;
 
 type ThinkingSelection = ThinkingLevel | "auto" | undefined;
 type Snapshot = { model: NonNullable<ExtensionContext["model"]>; thinking: ThinkingSelection };
-type Stage = { mode: "automatic" | "manual" | "cancelled"; previous: Snapshot; instruction?: string };
+type RetryChains = Readonly<Record<string, string[]>>;
+type Stage = {
+  mode: "automatic" | "manual" | "cancelled";
+  previous: Snapshot;
+  instruction?: string;
+  retry?: { previous: RetryChains | undefined; owned: string | undefined };
+};
 
 export default function designerAdapter(pi: ExtensionAPI): void {
+  registerClaudeCli(pi);
+  const retryChainsSchema = pi.zod.record(pi.zod.string(), pi.zod.array(pi.zod.string()));
   let stage: Stage | undefined;
   let generation = 0;
   let pending = 0;
@@ -57,15 +68,45 @@ export default function designerAdapter(pi: ExtensionAPI): void {
     const model = ctx.models.current();
     return `${model ? `${model.provider}/${model.id}` : "unavailable"}; thinking=${pi.getThinkingLevel() ?? "default"}`;
   }
+  function notifyCliHooks(ctx: ExtensionContext): void {
+    ctx.ui.notify("Claude CLI permits managed-policy hooks outside OMP approvals; retries may repeat them.", "warning");
+  }
   async function apply(value: Snapshot): Promise<void> {
     if (!await pi.setModel(value.model)) throw new Error("The requested model is unavailable or unauthenticated.");
     setThinking(value.thinking);
+  }
+  function runtimeChains(): RetryChains | undefined {
+    const retry = pi.pi.settings.overlayLayers().overrides.retry;
+    if (!retry || typeof retry !== "object" || Array.isArray(retry) || !("fallbackChains" in retry))
+      return undefined;
+    return retry.fallbackChains === undefined ? undefined : retryChainsSchema.parse(retry.fallbackChains);
+  }
+  function releaseRetry() {
+    const retry = stage?.retry;
+    if (!retry) return;
+    stage!.retry = undefined;
+    const settings = pi.pi.settings;
+    // Compare the actual runtime layer, not its merge with reloadable lower layers.
+    // Native snapshots cannot distinguish a later equal-valued override.
+    if (JSON.stringify(runtimeChains()) !== retry.owned) return;
+    if (retry.previous !== undefined) cfgRetryFallbackChains.override(settings, retry.previous);
+    else cfgRetryFallbackChains.clearOverride(settings);
+  }
+  function installRetry(selection: Snapshot, remaining: string[]) {
+    const settings = pi.pi.settings;
+    const previous = runtimeChains();
+    const key = `${selection.model.provider}/${selection.model.id}:${selection.thinking ?? "high"}`;
+    cfgRetryFallbackChains.override(settings, { [key]: remaining, ...Object.fromEntries(
+      Object.entries(previous ?? {}).filter(([name]) => name !== key),
+    ) });
+    stage!.retry = { previous, owned: JSON.stringify(runtimeChains()) };
   }
   async function restore(): Promise<void> {
     if (!stage) return;
     stage.mode = "cancelled";
     stage.instruction = undefined;
     await apply(stage.previous);
+    releaseRetry();
     stage = undefined;
   }
   function inject(ctx: ExtensionContext): void {
@@ -75,17 +116,48 @@ export default function designerAdapter(pi: ExtensionAPI): void {
     stage!.instruction = instruction;
     ctx.addAdditionalContext?.(instruction);
   }
-  async function start(ctx: ExtensionContext, epoch: number, signal?: AbortSignal): Promise<void> {
+  async function start(ctx: ExtensionContext, epoch: number, signal?: AbortSignal, manual = false): Promise<void> {
     if (signal?.aborted) throw new Error("Designer routing was aborted.");
-    const selection = resolveRoleSelection(["designer"], pi.pi.settings, ctx.models.list());
-    if (!selection) throw new Error("Configure an available, authenticated model under modelRoles.designer (@designer).");
-    const owned: Stage = { mode: "automatic", previous: snapshot(ctx) };
+    const settings = pi.pi.settings;
+    const primary = settings.getModelRole("designer");
+    if (!primary) throw new Error("Configure a model under modelRoles.designer (@designer).");
+    const selectors = manual ? [primary] : [
+      primary, `${CLI_PROVIDER}/${CLI_MODEL}:high`,
+      "openai-codex/gpt-6.1-sol:high", "openai-codex/gpt-6-astra:high",
+    ];
+    const owned: Stage = { mode: manual ? "manual" : "automatic", previous: snapshot(ctx) };
     stage = owned;
     try {
-      if (!await pi.setModel(selection.model)) throw new Error("The configured @designer model is unavailable or unauthenticated.");
-      if (epoch !== generation) throw new Error("Designer routing was cancelled by a session transition.");
-      if (selection.thinkingLevel !== undefined) setThinking(selection.thinkingLevel);
-      if (signal?.aborted) throw new Error("Designer routing was aborted.");
+      let chosen: Snapshot | undefined;
+      let next = 0;
+      for (; next < selectors.length; next++) {
+        if (signal?.aborted || epoch !== generation) throw new Error("Designer routing was cancelled.");
+        // Reuse native exact-selector resolution, authentication and model restrictions.
+        const models = ctx.models.list();
+        const candidate = selectors[next];
+        const selection = models.find(model => `${model.provider}/${model.id}:high` === candidate) ??
+          (next === 0 ? resolveRoleSelection(["designer"], settings, models)?.model : undefined);
+        if (!selection) continue;
+        try {
+          if (!await pi.setModel(selection)) continue;
+        } catch {
+          if (signal?.aborted || epoch !== generation) throw new Error("Designer routing was cancelled.");
+          ctx.ui.notify(`Designer selection failed for ${selection.provider}/${selection.id}.`, "warning");
+          continue;
+        }
+        if (epoch !== generation) throw new Error("Designer routing was cancelled.");
+        const effort = next === 0
+          ? resolveRoleSelection(["designer"], settings, models)?.thinkingLevel
+          : "high";
+        if (effort !== undefined) setThinking(effort);
+        if (signal?.aborted) throw new Error("Designer routing was cancelled.");
+        chosen = { model: selection, thinking: pi.getThinkingLevel() };
+        break;
+      }
+      if (!chosen) throw new Error("Designer API, Claude CLI, Sol and Astra are unavailable or unauthenticated.");
+      if (!manual) installRetry(chosen, selectors.slice(next + 1));
+      if (next > 0) ctx.ui.notify(`Designer primary unavailable; selected ${selected(ctx)}.`, "warning");
+      if (chosen.model.provider === CLI_PROVIDER) notifyCliHooks(ctx);
       inject(ctx);
     } catch (error) {
       // A target session owns selection after a transition. Its handler waits for this
@@ -138,7 +210,8 @@ export default function designerAdapter(pi: ExtensionAPI): void {
           if (stage?.mode === "cancelled") await restore();
           if (stage?.mode === "manual") await restore();
           else {
-            if (!stage) await start(ctx, epoch);
+            if (!stage) await start(ctx, epoch, undefined, true);
+            releaseRetry();
             stage!.mode = "manual";
           }
           ctx.ui.notify(`${stage?.mode === "manual" ? "Manual @designer pinned" : "Designer pin disabled"}. Selected ${selected(ctx)}.`, "info");
@@ -196,6 +269,11 @@ export default function designerAdapter(pi: ExtensionAPI): void {
     // Projection only: preserve user messages, other instructions and stored history.
     return messages ? { messages } : undefined;
   });
+  pi.on("retry_fallback_applied", async (event, ctx) => {
+    if (ctx.agent.kind !== "main" || stage?.mode !== "automatic" || !stage.retry) return;
+    ctx.ui.notify(`Designer unavailable: ${event.from}. Continuing with ${event.to}.`, "warning");
+    if (event.to.startsWith(`${CLI_PROVIDER}/`)) notifyCliHooks(ctx);
+  });
   pi.on("agent_end", async (event, ctx) => {
     if (ctx.agent.kind !== "main" || event.willContinue || event.awaitingAsyncWork) return;
     const epoch = generation;
@@ -224,6 +302,7 @@ export default function designerAdapter(pi: ExtensionAPI): void {
     generation++;
     const target = pending ? snapshot(ctx) : undefined;
     await serial(async () => {
+      releaseRetry();
       stage = undefined;
       if (target) await apply(target);
     });

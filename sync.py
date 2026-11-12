@@ -256,13 +256,18 @@ def backlog_plan(home):
 def designer_plan(home):
     """Install the personal UI/UX model/lifecycle adapter."""
     adapter = home / DESIGNER_ADAPTER
-    content = (ROOT / "integrations/omp-ui-ux/extension.ts").read_bytes()
+    content = (ROOT / "integrations/omp-ui-ux/extension.ts").read_text().replace(
+        'from "./claude-cli";', 'from "../lib/dev-stack-claude-cli";').encode()
     state = load_json(home / ".local/state/dev-stack/managed.json")
     check_destination(adapter, home)
     if adapter.exists() and adapter.read_bytes() != content:
         if hashlib.sha256(adapter.read_bytes()).hexdigest() != state.get("designer_adapter_sha256"):
             raise ValueError(f"Refusing to replace custom designer extension: {adapter}")
     plan = {adapter: content}
+    helper = home / ".omp/agent/lib/dev-stack-claude-cli.ts"
+    if helper.exists() and not helper.is_symlink():
+        raise ValueError(f"Refusing to replace custom designer CLI transport: {helper}")
+    plan[helper] = ROOT / "integrations/omp-ui-ux/claude-cli.ts"
     for relative in ("POLICY.md", "execution/AGENTS.md"):
         plan[home / ".agents/workflows" / relative] = ROOT / "workflows" / relative
     plan[home / ".agents/skills/POLICY.md"] = ROOT / "skills/POLICY.md"

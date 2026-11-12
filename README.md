@@ -97,10 +97,18 @@ For authorized changes to executor strategy, [the on-demand comparison guide](wo
 | No title refresh after todo replanning | `title.refreshOnReplan: false` |
 | Planning available, not entered at startup | `plan.enabled: true`, `plan.defaultOnStartup: false` |
 | Goal mode available when deliberately selected | `goal.enabled: true` |
+| Mounted device details loaded on demand | `tools.xdevDocs: builtins`, `tools.xdevNotices: false`; discover with `read xd://` |
+| Bounded provider recovery | `retry.maxRetries: 3`, `retry.maxDelayMs: 10000`; rate limits walk an installed chain |
+| Detect silent provider stalls | 60s first-event and 120s idle stream watchdogs |
+| Surface terminal failures | `error.notify: on` |
 
 TTSR and bundled rules remain enabled. The config lists nine disabled TypeScript conventions so the project owns import style, helper extraction, Promise construction and related choices. Type-boundary, deterministic-test and clean-cutover safeguards remain; Go/Rust rules are unchanged. Mandatory repository contracts and engineering policy still apply.
 
 Full sync restores these runtime settings. `--only-workflows` refreshes portable instructions, skills and the executor template without changing runtime settings. The visual adapter, LSP/AST/Eval, background execution, model roles and MCPs are retained.
+
+The template omits the eager mounted-device catalog while retaining native tool schemas and discovery. This does not disable connectors or alter their permissions. OMP may still append native MCP routing/server guidance outside the template; lazy catalog loading is not complete removal of connector context. Existing conversations retain their history. The execution method calls for precise evidence and concise handoffs when a task changes or context saturates, not arbitrary resets.
+
+The watchdogs bound provider silence, not legitimate tool execution or total task duration. Optional external reads use the tool's supported deadline/cancellation and must not delay an already-supported answer; essential prerequisites remain explicit blockers.
 
 ## OMP executor prompt
 
@@ -108,13 +116,19 @@ Full sync restores these runtime settings. `--only-workflows` refreshes portable
 
 Full and workflow-scoped sync refuse a competing user-level `SYSTEM.md`, a regular custom `SYSTEM_TEMPLATE.md` or an unrelated destination symlink before any writes. Resolve the reported ownership/precedence conflict explicitly rather than deleting personal instructions. Project-level custom prompts and explicit CLI overrides retain native precedence; the user template is not a permission mechanism.
 
-The template uses the [OMP 18.12.6 native prompt contract](https://github.com/can1357/oh-my-pi/blob/v18.12.6/packages/coding-agent/src/system-prompt.ts). Review native template variables when upgrading OMP. Restart the process and use `omp --continue` or `omp --resume` to retain the conversation; running processes cache prompt source and skill discovery. A stale advertised skill is not evidence that its plugin remains installed—check fresh native discovery. No sessions are restarted by sync.
+The template uses the [OMP 18.14.0 native prompt contract](https://github.com/can1357/oh-my-pi/blob/v18.14.0/packages/coding-agent/src/system-prompt.ts). Review native template variables when upgrading OMP. Restart the process and use `omp --continue` or `omp --resume` to retain the conversation; running processes cache prompt source and skill discovery. A stale advertised skill is not evidence that its plugin remains installed—check fresh native discovery. No sessions are restarted by sync.
 
 ## Personal visual workflow and OMP adapter
 
-[`visual-design`](skills/visual-design/SKILL.md) is a short portable UI/UX guide. All UI/UX tasks and decisions—including advice-only questions and small visual corrections—use **Claude Opus 5.5 High** unless the user explicitly selects another model. Start from the existing design system, understand the user's main action, recommend or implement the smallest appropriate change, and verify what actually changed. Advice-only work does not imply implementation or a runtime test.
+[`visual-design`](skills/visual-design/SKILL.md) is a short portable UI/UX guide. Prefer **Claude Opus 5.5 High** for visual work, including advice and small corrections. Automatic stages recover in order through **Anthropic API → Claude CLI → Sol → Astra**. Explicit per-task model choices and manual pins take precedence and do not authorize substitution.
 
-The principal stays in its existing context; the OMP adapter selects `modelRoles.designer` (`anthropic/claude-opus-5-5:high`) before UI/UX reasoning through `designer` start/finish. UXPeak supplies relevant usability guidance; Mobbin supplies concrete screen/flow/section references when they help. A tiny correction does not require a new Mobbin search. Backend work, UI-preserving wiring and designer-tooling setup remain on the normal model. Finish restores the previous model/effort; cancellation and session transitions retain the same safeguards. `/designer` is an explicit session-local pin, not a separate workflow or persisted vendor toggle.
+The principal stays in its existing context. The OMP adapter selects `modelRoles.designer` before visual reasoning, installs a temporary native retry chain for that automatic stage, and reports fallback selection immediately. Native recovery retains the conversation and applies OMP's replay and context-fit checks; those checks do not observe CLI hook side effects. Finish restores the previous model/effort and removes the owned chain; cancellation, manual takeover and session transitions retain the same safeguards. `/designer` pins the selected model for this session without the automatic recovery chain.
+
+The CLI backend receives the existing conversation, images and allowed tool schemas over stdin, returning validated text/tool-call proposals for OMP to execute. Claude's ordinary tools, MCP, user customizations and session persistence are disabled. **Managed-policy hooks remain allowed** and can execute commands outside OMP approvals or repeat on retries; this is an accepted fallback boundary, not hook-free execution. No managed policy or permission checks are bypassed, and credentials are not copied. Install Claude CLI independently and use `claude auth login`; the backend uses that login rather than the failed API key.
+
+The backend requires CLI flags compatible with 2.1.314, limits each request to 90 seconds and 16 MiB of combined output, and terminates its owned process group on cancellation or failure. It cannot roll back hook side effects or control intentionally detached hook daemons. CLI subscription cost is unpriced: zero catalog costs do not mean free use or measured savings.
+
+UXPeak and Mobbin are support when they resolve a real decision, not mandatory searches before a mechanical correction. Backend work, UI-preserving wiring and designer-tooling setup remain on the normal model.
 
 Install the adapter separately when needed:
 
@@ -123,7 +137,7 @@ python3 sync.py --only-designer --dry-run
 python3 sync.py --only-designer
 ```
 
-The personal extension is [`integrations/omp-ui-ux/extension.ts`](integrations/omp-ui-ux/extension.ts), installed as `~/.omp/agent/extensions/ui-ux-role.ts`. No npm designer package, Node validator, 12-skill manifest, read-order gate or palette database is required. Sync refuses unowned changes to the installed adapter and unsafe destination symlinks before writes. It does not read or modify plugin registries. Missing/unavailable configured roles produce a diagnostic, not a substitute model.
+The personal extension is [`integrations/omp-ui-ux/extension.ts`](integrations/omp-ui-ux/extension.ts), installed as `~/.omp/agent/extensions/ui-ux-role.ts`, with its inference transport linked under `~/.omp/agent/lib/dev-stack-claude-cli.ts`. No npm designer package, Node validator, skill bundle or reference-search gate is required. Sync refuses unowned adapter/helper changes and unsafe destination symlinks before writes. It does not read or modify plugin registries. A missing configured designer role is a diagnostic; an unavailable automatic route tries its remaining supported providers and reports exhaustion.
 
 Full and workflow-scoped sync maintain this adapter. Restart the OMP process to load extension changes, then use `omp --continue` or `omp --resume` to retain the existing conversation; a new conversation is not required. Already-running processes retain loaded code until reloaded/restarted, and sync does not restart them. Other runtimes use the same portable visual discipline with their available capabilities, without assuming an OMP tool.
 
@@ -133,7 +147,17 @@ Native lifecycle regressions run without model inference or live credentials:
 python3 -B -m unittest discover -s tests -p test_omp_ui_ux.py -v
 ```
 
-They require only installed OMP, use isolated homes, and exercise actual role/effort selection, restoration, cancellation/rollback ordering, session boundaries, manual pinning and owned-context lifetime. Missing OMP skips; runtime failures fail the tests.
+They require Python 3.11+ and installed OMP, use isolated homes and the actual scoped installer, and exercise role/effort selection, restoration, cancellation/rollback ordering, session boundaries, manual pinning and owned-context lifetime. Missing OMP skips; runtime failures fail the tests.
+
+Native OMP `/review` still generates file-count-based Distribution Guidelines. The executor template explicitly treats that generated count as a default and applies the shared risk-based review policy instead, preserving frozen diff URLs, source restrictions and reviewer counts explicitly requested in Additional Instructions. This is an instruction-level correction, not a change to the native generator or a mechanical cap. The compiled 18.14.0 custom-command loader cannot resolve the host-package imports needed for a thin native-command subclass; no command override or binary patch is installed.
+
+Offline runtime checks:
+
+```sh
+python3 -B -m unittest discover -s tests -p 'test_omp*.py' -v
+```
+
+These exercise lifecycle/recovery, the inference-only subprocess and native prompt discovery/permissions without provider inference. They do not establish model quality, review-policy compliance or faster task completion. Compare first actionable findings, first demonstrated working results, verified completion and user interventions with the [evaluation guide](workflows/execution/EVALUATION.md).
 
 ## Executor browser automation
 

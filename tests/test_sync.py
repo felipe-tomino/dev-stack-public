@@ -48,6 +48,38 @@ class SyncSafetyTests(unittest.TestCase):
         self.assertFalse((self.home / ".zshenv").exists())
         self.assertFalse((self.home / ".claude.json").exists())
         self.assertFalse((self.home / ".local/bin").exists())
+        adapter = self.home / ".omp/agent/extensions/ui-ux-role.ts"
+        self.assertIn('from "../lib/dev-stack-claude-cli";', adapter.read_text())
+        self.assertEqual((self.home / ".omp/agent/lib/dev-stack-claude-cli.ts").resolve(),
+                         ROOT / "integrations/omp-ui-ux/claude-cli.ts")
+        self.assertFalse((self.home / ".omp/agent/commands/review/index.ts").exists())
+
+    def test_workflow_sync_preserves_custom_review_and_runtime_settings(self):
+        runtime = self.home / ".omp/agent/config.yml"
+        runtime.parent.mkdir(parents=True)
+        runtime.write_text("private: preserve\n")
+        command = self.home / ".omp/agent/commands/review/index.ts"
+        command.parent.mkdir(parents=True)
+        command.write_text("private review command\n")
+        result = self.run_sync("--only-workflows")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(command.read_text(), "private review command\n")
+        self.assertEqual(runtime.read_text(), "private: preserve\n")
+        repeated = self.run_sync("--only-workflows")
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertIn("Synced 0 changes", repeated.stdout)
+
+    def test_workflow_refuses_custom_designer_helper_before_writes(self):
+        for relative in (".omp/agent/lib/dev-stack-claude-cli.ts",):
+            with self.subTest(path=relative):
+                path = self.home / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("private implementation\n")
+                result = self.run_sync("--only-workflows")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertEqual(path.read_text(), "private implementation\n")
+                self.assertFalse((self.home / ".local").exists())
+                path.unlink()
 
     def test_designer_repeat_and_full_sync_retain_adapter_without_rewriting(self):
         installed = self.run_sync("--only-designer")
