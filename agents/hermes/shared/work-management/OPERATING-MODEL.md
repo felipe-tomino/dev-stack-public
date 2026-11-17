@@ -14,7 +14,7 @@ Base: `@HOME@/.hermes/shared/work-management/`.
 - Engineering Lead product evidence, including preserved Product Partner artifacts: `product/`.
 - Continuation context: the selected profile's current `WORK-HANDOFF.md`; consult preserved legacy product handoffs when relevant.
 
-These directories map private context, not a competing personal task queue. Both profiles use `~/.agents/skills/personal-backlog/SKILL.md` and its `manager.md` branch for manager actions. Read existing records on demand and preserve their contents/history; restoration does not replace them.
+Read existing private records on demand and preserve their contents/history; restoration does not replace them.
 
 ## Native assistant messaging
 
@@ -31,12 +31,3 @@ For the Slack search connector exposing `keywords` and structural `filters`, put
 The preserved declaration is `@HOME@/.hermes/shared/work-management/weekday-brief.json`: weekdays at 7 AM in the Mac's actual current local timezone, cron `0 7 * * 1-5`, profile `main-assistant`, delivery `bot-chat:main-assistant`. The portable Main Assistant role owns behavioral intent and the executive-assistance procedure owns brief contents and permissions.
 
 Before claiming installation, compare the actual native scheduler's enabled job, timezone, schedule, profile, prompt and delivery to that declaration. A restored file does not prove a job exists. Use the separate `hermes-agent` background-systems reference only for an authorized scheduler operation; never silently create/activate a job. Verify execution and private delivery before promising unattended behavior. The scheduler/backend and Mac must be running/awake for timely execution. Automatic final-response delivery must not be duplicated with a manual message.
-
-## cmux capability and profile permissions
-
-The native runtime transport/security authority is `@HOME@/.hermes/skills/cmux-codex-proxy/SKILL.md`. Profile-local skills disclose narrower permissions and load that common procedure; they do not duplicate it.
-
-- `main-assistant`: standing passive discovery and relevant read-only context, including unique new read-only aliases; no routine worker control.
-- `engineering-lead`: routine controller of the user's selected executor, only with task authorization and profile-local exact-target permission.
-
-The bridge uses `@HOME@/.hermes/cmux-bridge/direct.py` from Hermes CLI inside cmux under inherited local capability. It is not available merely because a background Bot can exchange messages. Read the common adapter for exact UUID pins, authentication, read-before-send, preserved drafts and uncertain-delivery handling. Do not copy/broaden approvals across profiles. The selected executor may be OMP, Codex, Claude, Pi, OpenCode or another user-selected agent; the legacy skill name does not select Codex.

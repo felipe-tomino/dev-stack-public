@@ -1,6 +1,6 @@
 # Personal execution method
 
-Read `~/.agents/skills/POLICY.md` unless already current; it supplies engineering quality and the shared authorization, privacy and evidence boundaries. This is the coding executor workflow, not an assistant or backlog-manager role.
+Read `~/.agents/skills/POLICY.md` unless already current; it supplies engineering quality and the shared authorization, privacy and evidence boundaries. This workflow selects the coding executor role.
 
 ## Work
 
@@ -26,6 +26,6 @@ The only visible-browser exception is a necessary **manual user action**, such a
 
 ## On-demand guidance
 
-Load a skill only for the task or uncertainty it addresses; skill descriptions are a catalog, not a checklist. Keep explicit-only skills opt-in unless the request or this workflow authorizes their use. For code review, use `code-review`; one independent reviewer can cover both intent and engineering quality. For UI/UX work, follow `visual-design` and the configured model route; model selection alone does not require a separate agent. Personal-backlog access remains collaborator-only and never requires creating a task.
+Load a skill only for the task or uncertainty it addresses; skill descriptions are a catalog, not a checklist. Keep explicit-only skills opt-in unless the request or this workflow authorizes their use. For code review, use `code-review`; one independent reviewer can cover both intent and engineering quality. For UI/UX work, follow `visual-design` and the configured model route; model selection alone does not require a separate agent.
 
 When changing delegation strategy or removing an outcome-relevant guardrail, use [the comparison guide](EVALUATION.md). This is not a stage of ordinary work.

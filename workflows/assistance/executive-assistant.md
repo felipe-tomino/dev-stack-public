@@ -1,6 +1,6 @@
 # Executive assistance
 
-Read `AGENTS.md` and the selected assistance role here. Use this procedure for daily briefs, selected-meeting preparation, follow-up drafts and work reports. Load the personal-backlog skill and its `manager.md` reference before commitment reconciliation or ranking next actions. Use adapter-provided private records and supported source/messaging capabilities.
+Read `AGENTS.md` and the selected assistance role here. Use this procedure for daily briefs, selected-meeting preparation, follow-up drafts and work reports. Use adapter-provided private records and supported source/messaging capabilities.
 
 ## Context discovery
 

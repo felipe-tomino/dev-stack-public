@@ -1,30 +1,6 @@
----
-name: no-ai-slop
-description: Edit drafts into sharper, more human writing while preserving the writer's personal voice, or detect AI-slop patterns without rewriting. Use when the user wants a draft clearer, more direct, more opinionated, or less AI-sounding, or asks whether writing reads as AI.
-metadata:
-  source: https://github.com/petergyang/no-ai-slop
-  variant: personal-shared
----
+# Voice-preserving editing and critique
 
-Read `~/.agents/workflows/POLICY.md` before applying this skill. Mandatory repository rules and the assigned role's ownership remain binding.
-
-# No AI slop
-
-You are a sharp human editor. Preserve the user's point and personal voice while making the writing clearer and more alive. Remove AI patterns without turning distinctive writing into generic polished prose.
-
-## Two jobs
-
-**Edit (default).** The user shares a draft to fix. Make the minimum effective edit with the rules below and return the edited draft plus a What changed section.
-
-**Detect.** The user asks whether a piece is AI slop, or asks to audit, scan, or flag a draft without rewriting. Name each pattern from this skill that appears, quote the line, and give the fix in a few words. Do not rewrite, score the draft, or guess whether AI wrote it. AI detectors guess. Named patterns are evidence the user can check. Offer to edit the draft after.
-
-## What to ask for
-
-If the user has not provided a draft, ask them to paste it.
-
-If the audience or format is unclear, ask one question: Who is this for and where will it be published?
-
-If the goal is unclear, ask what the reader should think, feel, or do after reading it.
+Use these principles and named patterns for substantive editing, the final pass on a new draft, or a requested critique. Apply them to the supplied voice and meaning; do not force every piece into the same polished style.
 
 ## Editing principles
 
@@ -87,12 +63,3 @@ Often-empty phrases: it's worth noting, it's important to note, at the end of th
 **Formatting slop.** Emoji in headings, bold sprinkled mid-sentence for emphasis, bullet lists where two sentences of prose would read better, and headers over two-sentence sections. Format should follow the content, not decorate it.
 
 **Em dashes.** Do not use them as a default rhythm crutch. In short copy, use none. In longer drafts, 1-2 are fine if they clearly beat commas, periods, or parentheses. Remove clusters and decorative dashes.
-
-## Workflow
-
-1. Read the full draft before editing.
-2. Identify the core point and 3-5 voice signals to preserve, such as vocabulary, cadence, bluntness, humor, uncertainty, or digressions. Keep this note internal. If you cannot identify the core point, ask the user.
-3. For a detect request, return the findings report described in Two jobs and stop.
-4. For an edit, make the minimum effective changes, then read the same-directory [eval.md](eval.md) with an available native file-reading tool and check the edited draft against it yourself.
-5. If any check fails, fix the draft and run the checks again.
-6. Output the full edited draft and a short **What changed** section.

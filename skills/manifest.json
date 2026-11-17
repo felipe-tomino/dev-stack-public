@@ -4,7 +4,7 @@
   "license": "MIT",
   "variant": "personal-shared",
   "updatePolicy": "Manual review and adaptation only; upstream updates must not overwrite personal guidance.",
-  "purpose": "Historical building-skill attribution and original import hashes only; not an installation lock. no-ai-slop records its separate origin in no-ai-slop/provenance.json.",
+  "purpose": "Historical building-skill attribution and original import hashes only; not an installation lock. The merged editing reference records its separate origin in writing/references/editing-provenance.json.",
   "skills": [
     {
       "name": "research",
@@ -53,16 +53,8 @@
       "originalSha256": {
         "CREDITS.md": "a7a087127665d7298a72280ef6e19c41ad8404523712a788c8dc3ab414bc2497",
         "SKILL.md": "ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd"
-      }
-    },
-    {
-      "name": "prototype",
-      "sourcePath": "skills/engineering/prototype",
-      "originalSha256": {
-        "SKILL.md": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3",
-        "LOGIC.md": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9",
-        "UI.md": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
-      }
+      },
+      "disposition": "Merged into writing/references/pull-requests.md; no separate installed skill."
     },
     {
       "name": "diagnosing-bugs",
@@ -70,13 +62,6 @@
       "originalSha256": {
         "SKILL.md": "849198df88cdb65fd0d97236604c1fca7ff2f22d2f705f9724a800d0266b118d",
         "scripts/hitl-loop.template.sh": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
-      }
-    },
-    {
-      "name": "retro",
-      "sourcePath": "skills/engineering/retro",
-      "originalSha256": {
-        "SKILL.md": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696"
       }
     },
     {
@@ -88,16 +73,9 @@
       }
     },
     {
-      "name": "grilling",
-      "sourcePath": "skills/productivity/grilling",
-      "originalSha256": {
-        "SKILL.md": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15"
-      }
-    },
-    {
       "name": "grill-me",
       "sourcePath": "skills/productivity/grill-me",
-      "disposition": "Merged into the explicit grilling skill; wrapper removed.",
+      "disposition": "Removed; no installed replacement.",
       "originalSha256": {
         "SKILL.md": "caaf8b8de1684f96e26b28f3c29189db5c89cce4b73e1c93d86164f66ef88637"
       }
@@ -108,13 +86,6 @@
       "originalSha256": {
         "SKILL-MECHANICS.md": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059",
         "SKILL.md": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a"
-      }
-    },
-    {
-      "name": "wait-what",
-      "sourcePath": "skills/productivity/wait-what",
-      "originalSha256": {
-        "SKILL.md": "d961bb37defd975c539427edb8f450cdbccdcdd552e213c1ece46676a7970905"
       }
     }
   ]

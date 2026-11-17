@@ -9,31 +9,24 @@ This inventory records the consolidation decisions; it is human-facing reference
 | Existing piece | Decision | Responsibility after consolidation |
 | --- | --- | --- |
 | `implement` | Merge and remove wrapper | Outcome, investigation, risk, change, proof and finish live directly in the execution method. |
-| `grill-me` | Merge and remove wrapper | Explicit challenge/interview routes directly to `grilling`. |
+| `grill-me` | Merge and remove wrapper | Removed without an installed replacement. |
 | `research` | Keep, focus | Resolve an unknown contract/feasibility question using primary evidence; stop when the decision is supported. |
 | `diagnosing-bugs` | Adapt | A symptom-specific loop, falsifiable probes and measured results; no mandatory phase ceremony for a proven cause. |
 | `domain-modeling` | Keep, focus | Business meaning, ownership, transitions, transaction/concurrency invariants; no compulsory glossary or DDD layers. |
 | `codebase-design` | Adapt | Consequential responsibility/interface/dependency questions; principles on demand, not a glossary/diagram lesson. |
-| `prototype` | Adapt | The smallest runnable experiment that settles a decision; no compulsory HTML app, variant switcher or production rewrite. |
 | `tdd` | Adapt | One meaningful red/green slice when requested, required or useful for actual uncertainty; not a test for every edit. |
 | `code-review` | Adapt | Pinned affected flow, separate Standards/Spec axes; one fresh reviewer can cover both when risk warrants independent context. |
-| `pr` | Adapt | Required repository template, grounded evidence and shared writing; no diagram catalog or automatic publication. |
-| `retro` | Keep, focus | Explicit session-evidence-backed recommendations; no automatic instruction or environment edits. |
-| `grilling` | Canonical explicit discipline | Resolve material decision branches without turning normal implementation into an interview. |
-| `wait-what` | Keep, focus | Repair an explicitly confusing explanation without reopening the task. |
 | `writing-for-agents` | Adapt | Single authority, conditional pointers and evidence-backed pruning; compare strategy changes without benchmarking routine wording edits. |
-| `writing` | Keep shared | Reusable communication with factual/ownership boundaries and its existing prose pass. |
-| `no-ai-slop` | Keep shared | Voice-preserving prose editing/detection; not a second engineering reviewer. |
+| `writing` | Keep shared | Drafting, editing, critique and PR descriptions; voice preservation and format-specific references. |
 | `google-workspace` | Keep shared | Personal Docs/Sheets through a read-only MCP; account-verified `gws` for other authorized work. No role or permission escalation. |
-| `personal-backlog` | Keep shared role split | Assistant managers manage authorized commitments; executors append reports to existing tasks. |
 | `visual-design` | Keep minimal | All UI/UX decisions and tasks use Opus 5.5 High; a short guide uses UXPeak advice and Mobbin references without a local/full workflow split. |
 | Vendor's 12 designer skills and read-order gate | Remove from active workflow | Useful concerns are expressed in `visual-design`; no compulsory skill bundle, emotion question, palette CSV or docs trio. |
 | Personal OMP UI/UX adapter | Keep independent | Model/effort selection, restoration, cancellation, session-local manual pin and context lifetime only; no external designer package. |
-| Native executor instructions | Keep thin | Select the same method in OMP, Codex, Claude Code, Pi and OpenCode; expose actual native capabilities. |
+| Native executor instructions | Keep thin | Select the same method in OMP, Codex, Claude Code, and Pi; expose actual native capabilities. |
 | OMP executor template | Adapt native base prompt | Preserve live tool/skill/rule catalogs while the portable method owns process; no competing bundled delegation or cleanup recipes. |
 | Executor strategy comparison | On demand | Replay actual affected tasks before/after a strategy change; no routine evaluation stage or installed framework. |
 
-The result is 17 active skills: 12 focused execution disciplines, four shared capabilities and one visual discipline. Fewer files is not the target; each retained entry has a distinct trigger and finish condition.
+The result is 10 active shared skills. Fewer files is not the target; each retained entry has a distinct trigger and finish condition.
 
 ## Reference decisions
 
@@ -46,16 +39,16 @@ These are manually adapted ideas, not newly installed plugin dependencies, copie
 
 ## Loading and installation
 
-Read `~/.agents/skills/<name>/SKILL.md` with native file tools; expand `~` and resolve sibling references against the skill directory. Native invocation differs by runtime; [skill mechanics](writing-for-agents/SKILL-MECHANICS.md) owns discovery/visibility details. Reuse current guidance rather than rereading it by ritual.
+Read `~/.agents/skills/<name>/SKILL.md` with native file tools; expand `~` and resolve sibling references against the skill directory. The canonical `writing` skill also handles the former `no-ai-slop` and `pr` requests through conditional references. Native invocation differs by runtime; [skill mechanics](writing-for-agents/SKILL-MECHANICS.md) owns discovery/visibility details. Reuse current guidance rather than rereading it by ritual.
 
-`sync.py --only-workflows` installs portable authorities, skills, the OMP executor template and the independent personal UI/UX adapter. It retires only recorded obsolete wrapper links and the owned previous adapter filename, preserving unrelated ownership. It refuses competing/custom OMP prompt files before writes. It does not manage npm plugins or change model settings, MCPs, task data, active routines or native hooks. Restart OMP after template/discovery/extension changes; resume the existing conversation if desired.
+`sync.py --only-workflows` installs portable authorities, skills, the OMP executor template and the independent personal UI/UX adapter. It preserves recorded links outside that scope; it does not retire obsolete links. Full sync retires previously owned links that are absent from its current plan, preserving unrelated resources. Both modes refuse competing/custom OMP prompt files before writes. The scoped workflow mode does not manage npm plugins or change model settings, MCPs, task data, active routines or native hooks. Restart OMP after template/discovery/extension changes; resume the existing conversation if desired.
 
-`sync.py --only-designer` installs only the model adapter and its portable visual/common dependencies; no npm package or Node validator is needed. `sync.py --only-backlog` retains the central queue integration and common policy without installing execution methodology. Shared writing, prose editing, Google Workspace and backlog import only common policy and remain available to assistance.
+`sync.py --only-designer` installs only the model adapter and its portable visual/common dependencies; no npm package or Node validator is needed. Shared writing, prose editing, Google Workspace import only common policy and remain available to assistance.
 
-The native Hermes profiles select portable assistant roles; OMP, Pi, Codex, Claude Code and OpenCode currently select executor roles. A different runtime can host either role through an appropriate separate native profile, without changing the method. Tool availability is not equivalent across runtimes and does not grant side-effect authority.
+The native Hermes profiles select portable assistant roles; OMP, Pi, Codex and Claude Code currently select executor roles. A different runtime can host either role through an appropriate separate native profile, without changing the method. Tool availability is not equivalent across runtimes and does not grant side-effect authority.
 
 ## Attribution
 
-The original building guides were adapted from Matt Pocock revision `49dd158d1076134a641b33efb035946536778336`. [manifest.json](manifest.json) retains historical source paths/hashes, including disposition of removed wrappers; those records are attribution, not active installation entries or version locks. [LICENSE](LICENSE) and [pr/CREDITS.md](pr/CREDITS.md) retain upstream notices. [no-ai-slop](no-ai-slop/README.md) retains its separate source, license and assets. Review useful upstream changes manually rather than overwriting the personal method.
+The original building guides were adapted from Matt Pocock revision `49dd158d1076134a641b33efb035946536778336`. [manifest.json](manifest.json) retains historical source paths/hashes, including disposition of removed wrappers; those records are attribution, not active installation entries or version locks. [LICENSE](LICENSE) and [writing credits](writing/references/credits.md) retain upstream notices. The [editing reference](writing/references/editing.md) retains its separate source and license through the writing credits. Review useful upstream changes manually rather than overwriting the personal method.
 
-`writing`, `google-workspace`, `personal-backlog` and `visual-design` contain original guidance maintained here. Google Workspace installation/authentication and the queue runtime remain documented in the repository README; credentials and live queue data stay local.
+`writing`, `google-workspace` and `visual-design` contain original guidance maintained here. Google Workspace installation/authentication remain documented in the repository README; credentials and private assistant records stay local.

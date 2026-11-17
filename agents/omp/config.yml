@@ -14,7 +14,6 @@ theme:
   dark: titanium
 skills:
   customDirectories:
-    - ~/.omp/agent/personal-skills
     - ~/.agents/skills
   ignoredSkills:
     - devcontainer

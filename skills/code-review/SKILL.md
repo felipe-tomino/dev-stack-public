@@ -16,14 +16,30 @@ Read `~/.agents/skills/POLICY.md` unless already current. Apply when review is e
 
 Honor the requested fixed point; otherwise resolve it from PR base, branch comparison and task context. Capture resolved revisions and relevant commits. For a branch comparison, use the merge-base-to-head change; for WIP, include staged, unstaged and untracked content within scope without changing the checkout. If files move during review, distinguish snapshots rather than silently blending them.
 
-Use the current request, issue/PR, referenced spec and relevant contracts as intent; no new formal spec is required. Read applicable repository instructions, documented standards and affected callers. Include `CODING_STANDARDS.md` and `CONTRIBUTING.md` when present and relevant. Fetch referenced live intent when accessible; if material intent is unavailable, mark the Spec axis unavailable rather than inventing requirements.
+Use the current request, issue/PR, referenced spec and relevant contracts as intent; no new formal spec is required. Fetch referenced live intent when accessible; if material intent is unavailable, mark the Spec axis unavailable rather than inventing requirements.
+
+Search the repository for standards sources before assigning review: applicable `AGENTS.md`/`CLAUDE.md`, root and nested `CODING_STANDARDS.md` and `CONTRIBUTING.md`, and linked engineering/security/testing conventions. Always include discovered `CODING_STANDARDS.md` and `CONTRIBUTING.md` in the source list, stating which paths their rules govern. Read the actual rules and affected callers; do not substitute remembered conventions or a summary of the implementation. Repository rules take precedence over generic design heuristics. If a required source cannot be read, disclose the Standards coverage gap; absence of a standards file does not authorize inventing repository rules.
 
 ## Keep two axes separate
 
 - **Standards:** does the change meet documented repository rules? Assess consequential maintainability/security concerns with concrete impact, distinguishing mandatory violations from optional suggestions.
 - **Spec:** does the complete affected flow implement the actual requested behavior, including required failure paths, without omissions or scope creep?
 
-For bounded reviews, separate local passes suffice. For consequential boundaries, use genuinely independent read-only review when available and permitted by the execution method. One fresh reviewer can cover both axes in separate passes; two axes do not require two agents. Split reviewers only for coherent, independent risk boundaries or substantial bounded slices, not specialist names or fixed file-count thresholds; honor explicit requested reviewer counts within safety and dependency constraints. Give reviewers the pinned scope, authoritative sources and finding format below—not prior review conclusions. Separate local passes are not independent review; report that limitation when independence matters.
+For bounded reviews, separate local passes suffice. For consequential boundaries, use genuinely independent read-only review when available and permitted by the execution method. One fresh reviewer can cover both axes in separate passes; two axes do not require two agents. Split reviewers only for coherent, independent risk boundaries or substantial bounded slices, not specialist names or fixed file-count thresholds; honor explicit requested reviewer counts within safety and dependency constraints. Separate local passes are not independent review; report that limitation when independence matters.
+
+## Independent reviewer handoff
+
+Start each dispatched reviewer with a fresh context window. Explicitly select the runtime's isolated-context option rather than accepting its default: for Codex `spawn_agent`, set `fork_turns` to `"none"`. Keep the implementation conversation, the author's reasoning and prior review conclusions outside that context. If the runtime cannot isolate context, report that limitation rather than claiming independence.
+
+Supply a bounded, self-contained assignment with:
+
+- the repository root, this skill's path, assigned axes and read-only permissions;
+- the pinned revisions, diff command or frozen diff URL, relevant commit list and WIP snapshot boundaries, preserving source restrictions;
+- the original request and authoritative issue/spec/contracts, with exact source references;
+- the discovered standards-source list and each source's applicability, explicitly including `CODING_STANDARDS.md` and `CONTRIBUTING.md` when present;
+- the finding format and completion criteria below.
+
+Have the reviewer read this skill, applicable repository instructions and the assigned source files in its own context before assessing the change. When a source is inaccessible to that reviewer, supply its relevant text with path/URL and revision provenance; a principal's conclusion is not a substitute for source material. Preserve permission limits across the handoff. Wait for dispatched reports and base the final review on their returned findings; dispatch alone is not completed review.
 
 ## Evidence, not a pattern catalog
 

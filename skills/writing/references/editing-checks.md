@@ -1,4 +1,4 @@
-# No AI slop eval
+# Editing checks
 
 Use this after the rewrite. Answer each check with pass or fail. If any check fails, fix the draft before returning it.
 
@@ -38,5 +38,5 @@ For detect requests, make sure the response names each pattern found with a quot
 2. Does the draft avoid robotic symmetry, repeated sentence shapes, and stacked punchy fragments?
 3. Would the writer recognize the edited draft as their own voice?
 4. Would the edited draft sound natural if read to a sharp colleague?
-5. Does the final output include the full edited draft and a short **What changed** section?
+5. Does the output match the requested mode: the ready-to-use draft for editing, with a change report only when requested?
 6. For detect requests, does the response name each pattern with a quoted line and a short fix, without rewriting, scoring, or claiming AI authorship?

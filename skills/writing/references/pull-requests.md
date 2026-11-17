@@ -1,19 +1,6 @@
----
-name: pr
-description: Explicitly draft a concise motivation-first PR body grounded in actual changes and exercised evidence, preserving required repository template sections.
-disable-model-invocation: true
-metadata:
-  source: https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336/skills/engineering/pr
-  revision: 49dd158d1076134a641b33efb035946536778336
-  variant: personal-shared
-  credits:
-    skill: show-me
-    author: Dex Horthy
-    organisation: Humanlayer
-    url: "https://github.com/humanlayer/skills/blob/main/plugins/show-me/skills/show-me/SKILL.md"
----
+# Pull request descriptions
 
-Read `~/.agents/skills/POLICY.md` unless already current. Apply only to an explicit PR drafting/publication request. Load `~/.agents/skills/writing/SKILL.md` for external-facing prose.
+Use for an explicitly requested PR description or authorized PR creation/update. Drafting alone does not authorize publication.
 
 Read actual changes, originating intent, existing PR context and the repository's required PR template. Preserve required sections and fields; the fallback below does not replace them.
 
@@ -40,4 +27,4 @@ Without a repository template, use:
 
 **Complete when:** the requested body is ready to use, honors its template, and every change/evidence claim is grounded. Drafting does not authorize publication. Create/update a PR only when the request authorizes that external write; commit, push and tracker changes remain separately scoped.
 
-Visual-explanation inspiration and its upstream license are retained in [CREDITS.md](CREDITS.md).
+Visual-explanation inspiration and its upstream license are retained in [credits.md](credits.md).

@@ -1,5 +1,23 @@
 # Personal skills changelog
 
+## Single OMP shared skill source
+
+- Use `~/.agents/skills` as OMP’s sole configured custom skill root; retire the redundant personal policy link through full sync.
+- Correct the scoped workflow documentation: `--only-workflows` preserves ownership outside its scope and does not retire obsolete links.
+
+## Canonical writing and assistant skill boundaries
+
+- Merge prose drafting, voice-preserving editing/critique and PR descriptions into `writing`, with conditional references and preserved third-party notices. Retire separate `pr` and `no-ai-slop` skill entrypoints.
+- Select canonical shared writing/Google Workspace guidance in native adapters. Hermes offers the shared Google guidance through `personal/google-workspace` while its bundled counterpart is disabled.
+- Main Assistant and Engineering Lead delegate implementation and code review to the user's selected coding agents. Their saved skill preferences disable coding disciplines; default Hermes retains coding support through shared `tdd`.
+- Remove remaining active OpenCode, bridge and backlog-workflow references while retaining private records and historical change notes.
+
+## Reviewer context and repository standards
+
+- Adapt the fresh reviewer context and standards-source handoff fixes from [Matt Pocock's 1.3.2 review guidance](https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md).
+- Make context isolation explicit, including Codex's no-fork option, and pass applicable repository standards as source material. Retain proportional reviewer counts, separate Standards/Spec findings and read-only permissions.
+- Route native OMP review requests through the shared review authority.
+
 ## Context-based executor delegation
 
 - Keep coupled investigation, implementation and verification in the principal; separate workers by bounded context, not file count or specialty.

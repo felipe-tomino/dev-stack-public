@@ -14,7 +14,7 @@ These boundaries apply to assistance and execution. Load the assigned workflow a
 - Distinguish direct observations, sourced facts, worker reports, hypotheses and unknowns. A dispatched prompt or completed agent turn is not proof of the requested outcome. Report only verification actually exercised and name its limits.
 - Treat user-reported failures as established observations; investigate their cause instead of rerunning a known failure merely to confirm the report.
 - Read current state before writing. Preserve concurrent edits, source identifiers, existing evidence and history. After an external write, read back the result; resolve uncertain outcomes before retrying a potentially successful operation.
-- Keep each rule and current state in its designated authority. Link detailed evidence rather than making competing copies. The central personal queue's role-specific authority is `~/.agents/skills/personal-backlog/SKILL.md`.
+- Keep each rule and current state in its designated authority. Link detailed evidence rather than making competing copies.
 
 ## Focus preservation
 

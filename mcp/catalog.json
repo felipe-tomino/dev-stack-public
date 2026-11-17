@@ -1,5 +1,5 @@
 {
-  "selected": ["mobbin", "uxpeak", "github"],
+  "selected": ["mobbin", "uxpeak"],
   "profiles": {
     "work": [],
     "personal": ["google-personal"]
@@ -17,11 +17,6 @@
       }
     },
     "mobbin": {"type": "http", "url": "https://api.mobbin.com/mcp"},
-    "uxpeak": {"type": "http", "url": "https://connect.uxpeak.com"},
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp",
-      "headers": {"Authorization": "Bearer ${GITHUB_TOKEN}"}
-    }
+    "uxpeak": {"type": "http", "url": "https://connect.uxpeak.com"}
   }
 }

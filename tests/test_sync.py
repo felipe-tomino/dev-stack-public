@@ -13,7 +13,6 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-
 class SyncSafetyTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="dev-stack-test-")
@@ -26,6 +25,59 @@ class SyncSafetyTests(unittest.TestCase):
         return subprocess.run([sys.executable, "-B", str(checkout / "sync.py"), "--home", str(self.home), *options],
                               text=True, capture_output=True, cwd=self.root,
                               env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+
+    def test_full_sync_keeps_removed_integrations_absent_and_preserves_hermes_launcher(self):
+        launcher = self.home / ".local/bin/hermes"
+        launcher.parent.mkdir(parents=True)
+        launcher.write_text("#!/bin/sh\nexec /native/hermes \"$@\"\n")
+        original = launcher.read_bytes()
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for relative in (".config/opencode", ".config/cmux", ".hermes/cmux-bridge",
+                         ".agents/skills/personal-backlog", ".local/bin/work-queue"):
+            self.assertFalse((self.home / relative).exists(), relative)
+        self.assertEqual(launcher.read_bytes(), original)
+        self.assertTrue((self.home / ".config/ghostty/config").is_file())
+        self.assertTrue((self.home / ".hermes/profiles/main-assistant/SOUL.md").is_file())
+
+    def test_full_sync_retires_merged_skill_links_and_routes_hermes_roles(self):
+        prior = {}
+        for relative, name in ((".agents/skills/pr", "pr"),
+                               (".claude/skills/no-ai-slop", "no-ai-slop"),
+                               (".omp/agent/personal-skills/POLICY.md", "POLICY.md")):
+            path = self.home / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            source = ROOT / "skills" / name
+            path.symlink_to(source, target_is_directory=True)
+            prior[relative] = str(source)
+        state = self.home / ".local/state/dev-stack/managed.json"
+        state.parent.mkdir(parents=True)
+        state.write_text(json.dumps({"links": prior}))
+        result = self.run_sync()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for relative in prior:
+            self.assertFalse(os.path.lexists(self.home / relative), relative)
+        writing = self.home / ".agents/skills/writing"
+        self.assertTrue((self.home / ".agents/skills/POLICY.md").is_file())
+        for reference in ("editing.md", "editing-checks.md", "pull-requests.md", "credits.md"):
+            self.assertTrue((writing / "references" / reference).is_file())
+        for root in (".hermes", ".hermes/profiles/main-assistant",
+                     ".hermes/profiles/engineering-lead"):
+            self.assertEqual((self.home / root / "skills/writing").resolve(),
+                             ROOT / "skills/writing")
+            self.assertEqual((self.home / root / "skills/personal/google-workspace").resolve(),
+                             ROOT / "skills/google-workspace")
+        self.assertEqual((self.home / ".hermes/skills/tdd").resolve(), ROOT / "skills/tdd")
+        for role in ("main-assistant", "engineering-lead"):
+            base = self.home / ".hermes/profiles" / role
+            disabled = json.loads((base / "portable-preferences.json").read_text())["skills"]["disabled"]
+            self.assertIn("test-driven-development", disabled)
+            self.assertIn("sdlc-review", disabled)
+            self.assertIn("productivity/google-workspace", disabled)
+            self.assertFalse((base / "skills/tdd").exists())
+        repeated = self.run_sync()
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertIn("Synced 0 changes", repeated.stdout)
 
     def test_designer_scoped_install_preserves_unrelated_plugins_and_config(self):
         sentinels = {
@@ -249,45 +301,6 @@ class SyncSafetyTests(unittest.TestCase):
         self.assertNotEqual(launched.returncode, 0, launched.stdout + launched.stderr)
         self.assertFalse(evidence.exists(), "Launcher allowed Chromium to write through a personal-profile symlink")
 
-    def test_hermes_launcher_keeps_original_private_and_survives_repeat_sync(self):
-        launcher = self.home / ".local/bin/hermes"
-        launcher.parent.mkdir(parents=True)
-        original = '#!/bin/sh\nexec "/local/hermes-runtime/bin/hermes" "$@"\n'
-        launcher.write_text(original)
-        launcher.chmod(0o700)
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        saved = self.home / ".hermes/cmux-bridge/hermes-original"
-        self.assertEqual(saved.read_text(), original)
-        self.assertNotEqual(launcher.read_text(), original)
-        for path in (launcher, saved, self.home / ".hermes/cmux-bridge/cmux"):
-            self.assertEqual(path.stat().st_mode & 0o777, 0o700)
-        modified = saved.stat().st_mtime_ns
-        repeated = self.run_sync()
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        self.assertEqual(saved.read_text(), original)
-        self.assertEqual(saved.stat().st_mtime_ns, modified)
-
-    def test_hermes_custom_launcher_is_not_overwritten(self):
-        launcher = self.home / ".local/bin/hermes"
-        launcher.parent.mkdir(parents=True)
-        original = "#!/bin/sh\n# User-owned launcher with custom setup\nexec /local/hermes\n"
-        launcher.write_text(original)
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 1)
-        self.assertEqual(launcher.read_text(), original)
-        self.assertFalse((self.home / ".hermes").exists())
-
-    def test_hermes_only_sync_does_not_read_or_replace_unrelated_auth(self):
-        private = self.home / ".config/cmux/cmux.json"
-        private.parent.mkdir(parents=True)
-        private.write_text("private config not interpreted by this operation")
-        result = self.run_sync("--only-hermes")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(private.read_text(), "private config not interpreted by this operation")
-        self.assertFalse((self.home / ".codex").exists())
-        self.assertFalse((self.home / ".local/bin/hermes").exists())
-        self.assertFalse((self.home / ".local/state/dev-stack/managed.json").exists())
 
     def test_regular_file_ancestor_refuses_before_any_write(self):
         blocker = self.home / ".claude"
@@ -298,39 +311,6 @@ class SyncSafetyTests(unittest.TestCase):
         self.assertFalse((self.home / ".omp").exists())
         self.assertFalse((self.home / ".agents").exists())
 
-    def test_sync_keeps_socket_password_and_private_backup(self):
-        config = self.home / ".config/cmux/cmux.json"
-        config.parent.mkdir(parents=True)
-        secret = "local-private-password-for-this-test"
-        original = {"schemaVersion": 0, "automation": {
-            "socketPassword": secret, "claudeBinaryPath": "/private/claude", "socketControlMode": "password"}}
-        config.write_text(json.dumps(original))
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(json.loads(config.read_text())["automation"], {
-            **original["automation"], "socketControlMode": "cmuxOnly"})
-        self.assertNotIn(secret, result.stdout + result.stderr)
-        backups = list((self.home / ".local/state/dev-stack/backups").rglob("cmux.json"))
-        self.assertEqual([json.loads(p.read_text()) for p in backups], [original])
-        self.assertEqual(config.stat().st_mode & 0o777, 0o600)
-        self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
-        before = config.stat().st_mtime_ns
-        repeated = self.run_sync()
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        self.assertEqual(config.stat().st_mtime_ns, before)
-
-    def test_sync_does_not_create_or_replace_cleared_socket_passwords(self):
-        for name, automation in (("absent", {}), ("empty", {"socketPassword": ""}),
-                                 ("null", {"socketPassword": None})):
-            with self.subTest(name=name):
-                self.home = self.root / name
-                config = self.home / ".config/cmux/cmux.json"
-                config.parent.mkdir(parents=True)
-                config.write_text(json.dumps({"automation": automation}))
-                result = self.run_sync()
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertEqual(json.loads(config.read_text())["automation"], {
-                    **automation, "socketControlMode": "cmuxOnly"})
 
     def installed_mcp_servers(self):
         servers = {
@@ -358,7 +338,7 @@ class SyncSafetyTests(unittest.TestCase):
                 result = self.run_sync(*options)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 for agent, servers in self.installed_mcp_servers().items():
-                    expected = {"mobbin", "uxpeak", "github", "private"}
+                    expected = {"mobbin", "uxpeak", "private"}
                     if personal:
                         expected.add("google-personal")
                         self.assertEqual(servers["google-personal"]["command"],
@@ -453,51 +433,6 @@ class SyncSafetyTests(unittest.TestCase):
         backups = list((self.home / ".local/state/dev-stack/backups").rglob("config.toml"))
         self.assertEqual(tomllib.loads(backups[0].read_text())["model"], "old-choice")
 
-    def test_opencode_jsonc_keeps_private_settings_and_literal_comment_markers(self):
-        config = self.home / ".config/opencode/profiles/default/opencode.jsonc"
-        config.parent.mkdir(parents=True)
-        config.write_text(r'''{
-          // Local authentication and permission settings are not repo-owned.
-          "provider": {"private": {"options": {
-            "apiKey": "local-test-token", "baseURL": "https://private.invalid/a//b",
-            "literal": "/* keep */ and \"quoted // text\" and slash \\", }, }, },
-          /* A block comment before another setting. */
-          "mcp": {"local": {"command": ["private-server",], "enabled": true,},},
-          "permission": {"bash": "ask",},
-          "instructions": ["local-guidance.md",],
-        }''')
-        tui = self.home / ".config/opencode/tui.jsonc"
-        tui.write_text('{"privatePreference": "https://keep.invalid/*literal*/", /* local */}\n')
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        installed = json.loads(config.read_text())
-        self.assertEqual(installed["provider"], {"private": {"options": {
-            "apiKey": "local-test-token", "baseURL": "https://private.invalid/a//b",
-            "literal": '/* keep */ and "quoted // text" and slash \\'}}})
-        self.assertEqual(installed["mcp"], {"local": {"command": ["private-server"], "enabled": True}})
-        self.assertEqual(installed["permission"], {"bash": "ask"})
-        self.assertEqual(installed["instructions"], [
-            "local-guidance.md", str(config.parent / "AGENTS.md")])
-        self.assertEqual(json.loads(tui.read_text())["privatePreference"], "https://keep.invalid/*literal*/")
-        self.assertNotIn("local-test-token", result.stdout + result.stderr)
-        before = config.stat().st_mtime_ns
-        repeated = self.run_sync()
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        self.assertEqual(config.stat().st_mtime_ns, before)
-
-    def test_malformed_jsonc_refuses_before_any_write(self):
-        config = self.home / ".config/opencode/profiles/default/opencode.jsonc"
-        config.parent.mkdir(parents=True)
-        for original in (
-                '{"permission": {"bash": "ask"}, /* unterminated',
-                '{"instructions": [,]}',
-                '{"instructions": ["local.md",,]}'):
-            with self.subTest(original=original):
-                config.write_text(original)
-                result = self.run_sync()
-                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                self.assertEqual(config.read_text(), original)
-                self.assertFalse((self.home / ".omp").exists())
 
     def test_symlinked_config_cannot_redirect_writes(self):
         outside = self.root / "outside"
@@ -621,281 +556,6 @@ class SyncSafetyTests(unittest.TestCase):
         self.assertFalse((self.home / ".hermes/profiles/main-assistant/SOUL.md").exists())
         self.assertFalse((self.home / ".local/state/dev-stack/managed.json").exists())
 
-    def test_backlog_only_preserves_tasks_credentials_and_unrelated_settings(self):
-        self.home = self.root / "home with 'quotes' & ü"
-        self.home.mkdir()
-        task = self.home / ".local/share/personal-backlog/backlog/tasks/WORK-42-user.md"
-        task.parent.mkdir(parents=True)
-        task.write_text("User-owned task and manually edited evidence.\n")
-        settings = self.home / ".omp/agent/config.yml"
-        settings.parent.mkdir(parents=True)
-        settings.write_text("theme: user-choice\n")
-        private = self.home / ".hermes/profiles/main-assistant/config.yaml"
-        private.parent.mkdir(parents=True)
-        private.write_text("secrets:\n  key: local-only-test-value\n")
-        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
-        sidebar.parent.mkdir(parents=True)
-        sidebar.write_text("User-owned sidebar outside this scoped restore.\n")
-        result = self.run_sync("--only-backlog")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(task.read_text(), "User-owned task and manually edited evidence.\n")
-        self.assertEqual(settings.read_text(), "theme: user-choice\n")
-        self.assertEqual(private.read_text(), "secrets:\n  key: local-only-test-value\n")
-        self.assertEqual(sidebar.read_text(), "User-owned sidebar outside this scoped restore.\n")
-        self.assertNotIn("local-only-test-value", result.stdout + result.stderr)
-        self.assertFalse((self.home / ".config/cmux/cmux.json").exists())
-        self.assertFalse((self.home / ".hermes/profiles/main-assistant/cron").exists())
-        self.assertFalse((self.home / ".claude.json").exists())
-        self.assertTrue(os.access(self.home / ".local/bin/work-queue", os.X_OK))
-        before = (self.home / ".local/bin/work-queue").stat().st_mtime_ns
-        repeated = self.run_sync("--only-backlog")
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        self.assertEqual((self.home / ".local/bin/work-queue").stat().st_mtime_ns, before)
-
-    def test_full_sync_installs_sidebar_and_preserves_its_local_data_and_placement(self):
-        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
-        preview = self.run_sync("--dry-run")
-        self.assertEqual(preview.returncode, 0, preview.stdout + preview.stderr)
-        self.assertFalse(sidebar.exists())
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        lines = sidebar.read_text().split("\n", 3)
-        appearance = json.loads(json.loads(lines[2][len("const sidebarConfig = JSON.parse("):-2]))
-        self.assertEqual(appearance["homeDirectory"], str(self.home))
-        snapshot = {"schemaVersion": 1, "generatedAt": "2026-10-19T00:00:00Z",
-                    "refreshAfterSeconds": 30, "sections": [{"id": "local", "title": "Local",
-                    "items": [{"id": "one", "title": 'Private café \"); throw new Error("unsafe"); //'}]}]}
-        lines[0] = f"const externalSnapshot = JSON.parse({json.dumps(json.dumps(snapshot))});"
-        lines[1] = 'const externalPosition = "bottom";'
-        sidebar.write_text("\n".join(lines))
-        original = sidebar.read_bytes()
-        before = sidebar.stat().st_mtime_ns
-        preview = self.run_sync("--dry-run")
-        self.assertEqual(preview.returncode, 0, preview.stdout + preview.stderr)
-        self.assertEqual(sidebar.read_bytes(), original)
-        self.assertEqual(sidebar.stat().st_mtime_ns, before)
-        self.assertNotIn("Private café", preview.stdout + preview.stderr)
-        repeated = self.run_sync()
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        installed = sidebar.read_text().split("\n", 3)
-        self.assertEqual(json.loads(json.loads(installed[0][len("const externalSnapshot = JSON.parse("):-2])), snapshot)
-        self.assertEqual(json.loads(installed[1][len("const externalPosition = "):-1]), "bottom")
-        settled = sidebar.stat().st_mtime_ns
-        again = self.run_sync()
-        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
-        self.assertEqual(sidebar.stat().st_mtime_ns, settled)
-        self.assertEqual(sidebar.stat().st_mode & 0o777, 0o600)
-        self.assertEqual(sidebar.parent.stat().st_mode & 0o777, 0o700)
-
-    def test_unrecognized_sidebar_refuses_before_any_write(self):
-        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
-        sidebar.parent.mkdir(parents=True)
-        original = "// My independently authored sidebar; do not replace.\n"
-        sidebar.write_text(original)
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertEqual(sidebar.read_text(), original)
-        self.assertFalse((self.home / ".omp").exists())
-
-    def test_symlinked_sidebar_cannot_redirect_sync_writes(self):
-        outside = self.root / "outside-sidebar.js"
-        outside.write_text("User-owned external sidebar.\n")
-        sidebar = self.home / ".config/cmux/sidebars/workspaces-local.js"
-        sidebar.parent.mkdir(parents=True)
-        sidebar.symlink_to(outside)
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertEqual(outside.read_text(), "User-owned external sidebar.\n")
-        self.assertTrue(sidebar.is_symlink())
-        self.assertFalse((self.home / ".omp").exists())
-
-    def test_backlog_routing_survives_full_and_scoped_repeat_sync(self):
-        config = self.home / ".config/personal-backlog/cmux.json"
-        config.parent.mkdir(parents=True)
-        routing = {
-            "workspace_id": "11111111-1111-4111-8111-111111111111",
-            "window_id": "22222222-2222-4222-8222-222222222222",
-        }
-        for options in ((), ("--only-backlog",)):
-            with self.subTest(options=options):
-                config.write_text(json.dumps(routing))
-                result = self.run_sync(*options)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                installed = json.loads(config.read_text())
-                self.assertEqual({key: installed[key] for key in routing}, routing)
-                before = config.stat().st_mtime_ns
-                repeated = self.run_sync(*options)
-                self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-                self.assertEqual(config.stat().st_mtime_ns, before)
-
-    def test_backlog_routing_defaults_seed_missing_keys_but_not_explicit_null(self):
-        checkout = self.root / "checkout"
-        checkout.mkdir()
-        shutil.copyfile(ROOT / "sync.py", checkout / "sync.py")
-        shutil.copytree(ROOT / "integrations/personal-backlog", checkout / "integrations/personal-backlog")
-        shutil.copytree(ROOT / "skills/personal-backlog", checkout / "skills/personal-backlog")
-        (checkout / "workflows").mkdir()
-        shutil.copyfile(ROOT / "workflows/POLICY.md", checkout / "workflows/POLICY.md")
-        defaults = {
-            "workspace_id": "33333333-3333-4333-8333-333333333333",
-            "window_id": "44444444-4444-4444-8444-444444444444",
-            "summary_limit": 7,
-        }
-        (checkout / "integrations/personal-backlog/cmux.json").write_text(json.dumps(defaults))
-        config = self.home / ".config/personal-backlog/cmux.json"
-        fresh = self.run_sync("--only-backlog", checkout=checkout)
-        self.assertEqual(fresh.returncode, 0, fresh.stdout + fresh.stderr)
-        self.assertEqual(json.loads(config.read_text()), defaults)
-        config.write_text(json.dumps({"workspace_id": None, "summary_limit": 99}))
-        result = self.run_sync("--only-backlog", checkout=checkout)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(json.loads(config.read_text()), {
-            "workspace_id": None,
-            "window_id": "44444444-4444-4444-8444-444444444444",
-            "summary_limit": 7,
-        })
-
-    def test_queue_without_tui_runtime_fails_without_installing_or_falling_back(self):
-        self.home = self.root / "home with 'quotes' & ☕"
-        self.home.mkdir()
-        restored = self.run_sync("--only-backlog")
-        self.assertEqual(restored.returncode, 0, restored.stdout + restored.stderr)
-        queue = self.home / ".local/share/personal-backlog"
-        self.assertFalse((queue / "tui-runtime").exists())
-        result = subprocess.run([str(self.home / ".local/bin/work-queue"), "tui", "--help"],
-                                text=True, capture_output=True, cwd=self.root,
-                                env=dict(os.environ, HOME=str(self.home)), timeout=10)
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertFalse((queue / "tui-runtime").exists())
-        self.assertFalse((queue / "runtime/node_modules").exists())
-        self.assertFalse((queue / "backlog/tasks").exists())
-
-    def test_restore_leaves_existing_isolated_runtime_untouched(self):
-        runtime = self.home / ".local/share/personal-backlog/tui-runtime"
-        runtime.mkdir(parents=True)
-        config = runtime / "pyvenv.cfg"
-        config.write_text("home = /user-owned/python\n")
-        for options in (("--only-backlog",), ()):
-            with self.subTest(options=options):
-                before = config.stat().st_mtime_ns
-                restored = self.run_sync(*options)
-                self.assertEqual(restored.returncode, 0, restored.stdout + restored.stderr)
-                self.assertEqual(config.read_text(), "home = /user-owned/python\n")
-                self.assertEqual(config.stat().st_mtime_ns, before)
-                self.assertFalse((runtime / "bin").exists())
-
-    def test_symlinked_tui_requirements_refuse_before_any_queue_write(self):
-        outside = self.root / "private-requirements.txt"
-        outside.write_text("private dependency declaration\n")
-        queue = self.home / ".local/share/personal-backlog"
-        queue.mkdir(parents=True)
-        (queue / "requirements-tui.txt").symlink_to(outside)
-        result = self.run_sync("--only-backlog")
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertEqual(outside.read_text(), "private dependency declaration\n")
-        self.assertTrue((queue / "requirements-tui.txt").is_symlink())
-        self.assertFalse((self.home / ".local/bin/work-queue").exists())
-        self.assertFalse((queue / "tui-runtime").exists())
-
-    def test_scoped_dock_restore_preserves_other_controls_and_quotes_home(self):
-        self.home = self.root / "home with 'quotes' & ☕"
-        config = self.home / ".config/cmux/dock.json"
-        config.parent.mkdir(parents=True)
-        unrelated = {"id": "local-tool", "command": "my-private-tool", "env": {"LOCAL": "keep"}}
-        original = {"privatePreference": {"keep": True}, "controls": [
-            unrelated, {"id": "personal-backlog", "command": "old-command"}]}
-        config.write_text(json.dumps(original))
-        result = self.run_sync("--only-backlog")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        installed = json.loads(config.read_text())
-        self.assertEqual(installed["privatePreference"], original["privatePreference"])
-        self.assertEqual(installed["controls"][0], unrelated)
-        owned = [control for control in installed["controls"] if control.get("id") == "personal-backlog"]
-        self.assertEqual(len(owned), 1)
-        self.assertEqual(shlex.split(owned[0]["command"]),
-                         [str(self.home / ".local/bin/work-queue"), "tui"])
-        before = config.stat().st_mtime_ns
-        repeated = self.run_sync("--only-backlog")
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        self.assertEqual(config.stat().st_mtime_ns, before)
-
-    def test_invalid_dock_controls_refuse_before_queue_install(self):
-        config = self.home / ".config/cmux/dock.json"
-        config.parent.mkdir(parents=True)
-        for controls in ("bad", [None]):
-            with self.subTest(controls=controls):
-                original = json.dumps({"controls": controls})
-                config.write_text(original)
-                result = self.run_sync("--only-backlog")
-                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                self.assertEqual(config.read_text(), original)
-                self.assertFalse((self.home / ".local/bin/work-queue").exists())
-
-    def test_scoped_links_relocate_without_retiring_other_ownership(self):
-        unrelated_source = self.root / "other-skill"
-        unrelated_source.mkdir()
-        unrelated = self.home / ".agents/skills/other-skill"
-        unrelated.parent.mkdir(parents=True)
-        unrelated.symlink_to(unrelated_source, target_is_directory=True)
-        state_path = self.home / ".local/state/dev-stack/managed.json"
-        state_path.parent.mkdir(parents=True)
-        state_path.write_text(json.dumps({
-            "servers": ["previously-owned-server"],
-            "links": {".agents/skills/other-skill": str(unrelated_source)},
-            "localMetadata": {"keep": True}}))
-        initial = self.run_sync("--only-backlog")
-        self.assertEqual(initial.returncode, 0, initial.stdout + initial.stderr)
-        relocated = self.root / "relocated checkout"
-        relocated.mkdir()
-        shutil.copyfile(ROOT / "sync.py", relocated / "sync.py")
-        shutil.copytree(ROOT / "integrations/personal-backlog", relocated / "integrations/personal-backlog")
-        shutil.copytree(ROOT / "skills/personal-backlog", relocated / "skills/personal-backlog")
-        (relocated / "workflows").mkdir()
-        shutil.copyfile(ROOT / "workflows/POLICY.md", relocated / "workflows/POLICY.md")
-        result = self.run_sync("--only-backlog", checkout=relocated)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        state = json.loads(state_path.read_text())
-        self.assertEqual(state["servers"], ["previously-owned-server"])
-        self.assertEqual(state["localMetadata"], {"keep": True})
-        self.assertEqual(state["links"][".agents/skills/other-skill"], str(unrelated_source))
-        self.assertEqual(unrelated.resolve(), unrelated_source)
-        for target, source in state["links"].items():
-            self.assertEqual((self.home / target).resolve(), Path(source))
-            if target != ".agents/skills/other-skill":
-                self.assertTrue(Path(source).is_relative_to(relocated))
-        policy = self.home / ".agents/workflows/POLICY.md"
-        self.assertEqual(policy.resolve(), relocated / "workflows/POLICY.md")
-        before = state_path.stat().st_mtime_ns
-        repeated = self.run_sync("--only-backlog", checkout=relocated)
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-        self.assertEqual(state_path.stat().st_mtime_ns, before)
-
-    def test_scoped_policy_replaces_regular_file_with_private_backup(self):
-        policy = self.home / ".agents/workflows/POLICY.md"
-        policy.parent.mkdir(parents=True)
-        original = "Existing policy with local edits.\n"
-        policy.write_text(original)
-        result = self.run_sync("--only-backlog")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertTrue(policy.is_symlink())
-        self.assertEqual(policy.resolve(), ROOT / "workflows/POLICY.md")
-        backups = list((self.home / ".local/state/dev-stack/backups").rglob("POLICY.md"))
-        self.assertEqual([path.read_text() for path in backups], [original])
-        self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
-        repeated = self.run_sync("--only-backlog")
-        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
-
-    def test_scoped_policy_refuses_foreign_link_before_any_write(self):
-        private = self.root / "private-policy"
-        private.write_text("user-owned policy")
-        policy = self.home / ".agents/workflows/POLICY.md"
-        policy.parent.mkdir(parents=True)
-        policy.symlink_to(private)
-        result = self.run_sync("--only-backlog")
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertEqual(policy.resolve(), private)
-        self.assertEqual(private.read_text(), "user-owned policy")
-        self.assertFalse((self.home / ".local/bin/work-queue").exists())
 
     def test_previous_owned_context_link_migrates_without_editing_shared_source(self):
         previous = ROOT / "agents/omp/AGENTS.md"
@@ -917,22 +577,6 @@ class SyncSafetyTests(unittest.TestCase):
         repeated = self.run_sync()
         self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
         self.assertEqual(context.stat().st_mtime_ns, before)
-
-    @unittest.skipUnless(shutil.which("cmux") and shutil.which("codex"), "Requires installed cmux and Codex")
-    def test_native_hooks_leave_codex_mcp_configuration_loadable(self):
-        result = self.run_sync()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        env = dict(os.environ, HOME=str(self.home), CODEX_HOME=str(self.home / ".codex"),
-                   PI_CODING_AGENT_DIR=str(self.home / ".omp/agent"))
-        env.pop("OMP_PROFILE", None)
-        env.pop("PI_PROFILE", None)
-        hooks = subprocess.run(["cmux", "hooks", "codex", "install", "--yes"],
-                               cwd=self.root, env=env, text=True, capture_output=True, timeout=30)
-        self.assertEqual(hooks.returncode, 0, hooks.stdout + hooks.stderr)
-        discovery = subprocess.run(["codex", "mcp", "get", "mobbin", "--json"], cwd=self.root,
-                                   env=env, text=True, capture_output=True, timeout=30)
-        self.assertEqual(discovery.returncode, 0, discovery.stdout + discovery.stderr)
-        self.assertEqual(json.loads(discovery.stdout)["transport"]["url"], "https://api.mobbin.com/mcp")
 
 
 if __name__ == "__main__":

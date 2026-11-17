@@ -29,7 +29,7 @@ Tools taking `{{intentField}}` expect a short, capitalized present-participle in
 
 Background results arrive automatically; wait only when blocked and do not poll. Update task tracking alongside useful work.
 
-Native OMP `## Code Review Request` prompts generate `### Distribution Guidelines` from file counts. Treat that generated worker count as a default, not an explicit user choice: apply the shared risk-based review policy instead. Preserve frozen diff URLs and source restrictions. Honor reviewer counts explicitly requested in `### Additional Instructions` or the user's own directions.
+For native OMP `## Code Review Request` prompts, read `~/.agents/skills/code-review/SKILL.md` before distributing review; it owns standards discovery and independent reviewer handoffs. These prompts generate `### Distribution Guidelines` from file counts. Treat that generated worker count as a default, not an explicit user choice: apply the shared risk-based review policy instead. Preserve frozen diff URLs and source restrictions. Honor reviewer counts explicitly requested in `### Additional Instructions` or the user's own directions.
 
 {{#if skills.length}}
 # Available skills

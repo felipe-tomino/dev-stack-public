@@ -3,12 +3,9 @@
 import argparse
 import datetime
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
-import plistlib
-import pwd
 import re
 import shlex
 import shutil
@@ -22,59 +19,29 @@ ROOT = Path(__file__).resolve().parent
 DESIGNER_ADAPTER = ".omp/agent/extensions/ui-ux-role.ts"
 FILES = {
     "agents/omp/config.yml": ".omp/agent/config.yml",
-    "integrations/cmux-omp/cli-path.ts": ".omp/agent/extensions/cmux-cli-path.ts",
     "agents/pi/settings.json": ".pi/agent/settings.json",
     "agents/claude/settings.json": ".claude/settings.json",
     "agents/codex/hooks.json": ".codex/hooks.json",
-    "cmux/config.ghostty": "Library/Application Support/com.cmuxterm.app/config.ghostty",
-    "cmux/ghostty.config": ".config/ghostty/config",
+    "agents/ghostty/config": ".config/ghostty/config",
     "integrations/atuin/config.toml": ".config/atuin/config.toml",
-    "agents/opencode/tui.jsonc": ".config/opencode/tui.jsonc",
-    "agents/opencode/ocx.jsonc": ".config/opencode/ocx.jsonc",
-    "agents/opencode/dcp.jsonc": ".config/opencode/dcp.jsonc",
-    "agents/opencode/profiles/default/ocx.jsonc": ".config/opencode/profiles/default/ocx.jsonc",
-    "agents/opencode/profiles/default/opencode.jsonc": ".config/opencode/profiles/default/opencode.jsonc",
-    "agents/opencode/profiles/default/AGENTS.md": ".config/opencode/profiles/default/AGENTS.md",
     "agents/hermes/profiles/main-assistant/SOUL.md": ".hermes/profiles/main-assistant/SOUL.md",
     "agents/hermes/profiles/engineering-lead/SOUL.md": ".hermes/profiles/engineering-lead/SOUL.md",
     "agents/hermes/profiles/main-assistant/preferences.json": ".hermes/profiles/main-assistant/portable-preferences.json",
     "agents/hermes/profiles/engineering-lead/preferences.json": ".hermes/profiles/engineering-lead/portable-preferences.json",
+    "agents/hermes/preferences.json": ".hermes/portable-preferences.json",
     "agents/hermes/profiles/main-assistant/skills/executive-assistant/SKILL.md": ".hermes/profiles/main-assistant/skills/executive-assistant/SKILL.md",
-    "agents/hermes/profiles/main-assistant/skills/cmux-codex-proxy/SKILL.md": ".hermes/profiles/main-assistant/skills/cmux-codex-proxy/SKILL.md",
-    "agents/hermes/profiles/engineering-lead/skills/cmux-codex-proxy/SKILL.md": ".hermes/profiles/engineering-lead/skills/cmux-codex-proxy/SKILL.md",
-    "agents/hermes/skills/cmux-codex-proxy/SKILL.md": ".hermes/skills/cmux-codex-proxy/SKILL.md",
     "agents/hermes/skills/work-management-roles/SKILL.md": ".hermes/skills/work-management-roles/SKILL.md",
     "agents/hermes/shared/work-management/OPERATING-MODEL.md": ".hermes/shared/work-management/OPERATING-MODEL.md",
     "agents/hermes/shared/work-management/weekday-brief.json": ".hermes/shared/work-management/weekday-brief.json",
-    "integrations/hermes-cmux/direct.py": ".hermes/cmux-bridge/direct.py",
-    "integrations/hermes-cmux/bridge.py": ".hermes/cmux-bridge/bridge.py",
-    "integrations/hermes-cmux/hook_adapter.py": ".hermes/cmux-bridge/hook_adapter.py",
-    "integrations/hermes-cmux/startup_session.py": ".hermes/cmux-bridge/startup_session.py",
-    "integrations/hermes-cmux/cmux.py": ".hermes/cmux-bridge/cmux",
 }
 EXECUTABLE_TARGETS = {
-    ".local/bin/work-queue", ".local/bin/hermes", ".local/bin/agent-chromium",
-    ".hermes/cmux-bridge/hermes-original", ".hermes/cmux-bridge/cmux",
+    ".local/bin/agent-chromium",
 }
 CONTEXTS = {
     ".omp/agent/RULES.md": "agents/omp/AGENTS.md",
     ".pi/agent/AGENTS.md": "agents/pi/AGENTS.md",
     ".codex/AGENTS.md": "agents/codex/AGENTS.md",
     ".claude/CLAUDE.md": "agents/claude/AGENTS.md",
-    ".config/opencode/AGENTS.md": "agents/opencode/AGENTS.md",
-}
-BACKLOG_FILES = {
-    "work-queue.in": ".local/bin/work-queue",
-    "cmux-summary.py.in": ".local/share/personal-backlog/cmux-summary.py",
-    "queue-tui.py": ".local/share/personal-backlog/queue-tui.py",
-    "queue_data.py": ".local/share/personal-backlog/queue_data.py",
-    "requirements-tui.txt": ".local/share/personal-backlog/requirements-tui.txt",
-    "backlog-config.yml": ".local/share/personal-backlog/backlog/config.yml",
-    "package.json": ".local/share/personal-backlog/runtime/package.json",
-    "package-lock.json": ".local/share/personal-backlog/runtime/package-lock.json",
-    "cmux.json": ".config/personal-backlog/cmux.json",
-    "cmux.plist": "Library/LaunchAgents/local.personal-backlog.cmux.plist",
-    "AGENTS.md": ".local/share/personal-backlog/AGENTS.md",
 }
 AUTH_FIELDS = ("headers", "oauth", "auth", "env", "bearer_token_env_var", "http_headers", "env_http_headers")
 
@@ -182,8 +149,6 @@ def source_bytes(source, home):
         if isinstance(value, dict):
             return {key: render(item) for key, item in value.items()}
         return value
-    if source.endswith(".plist"):
-        return plistlib.dumps(render(plistlib.loads(content.encode())))
     if source.endswith((".json", ".jsonc")):
         return json_bytes(render(jsonc_loads(content) if source.endswith(".jsonc") else json.loads(content)))
     return (content.replace("@HOME_JSON@", json.dumps(str(home), ensure_ascii=False))
@@ -216,40 +181,12 @@ def workflow_plan(home):
         plan[home / ".agents/skills" / source.name] = source
         if source.is_dir() and (source / "SKILL.md").is_file():
             plan[home / ".claude/skills" / source.name] = source
-    plan[home / ".omp/agent/personal-skills/POLICY.md"] = ROOT / "skills/POLICY.md"
-    for name in ("writing", "no-ai-slop", "google-workspace", "personal-backlog"):
-        plan[home / ".hermes/skills" / name] = ROOT / "skills" / name
+    for root in (".hermes/skills", ".hermes/profiles/main-assistant/skills",
+                 ".hermes/profiles/engineering-lead/skills"):
+        plan[home / root / "writing"] = ROOT / "skills/writing"
+        plan[home / root / "personal/google-workspace"] = ROOT / "skills/google-workspace"
+    plan[home / ".hermes/skills/tdd"] = ROOT / "skills/tdd"
     plan.update(designer_plan(home))
-    return plan
-
-
-def backlog_plan(home):
-    plan = {home / target: source_bytes(f"integrations/personal-backlog/{source}", home)
-            for source, target in BACKLOG_FILES.items()}
-    config_path = home / ".config/personal-backlog/cmux.json"
-    config = json.loads(plan[config_path])
-    current = load_json(config_path)
-    for key in ("workspace_id", "window_id"):
-        if key in current:
-            config[key] = current[key]
-    plan[config_path] = json_bytes(config)
-    skill = ROOT / "skills/personal-backlog"
-    for root in (".agents/skills", ".claude/skills", ".omp/agent/personal-skills", ".pi/agent/skills",
-                 ".config/opencode/skills", ".hermes/skills",
-                 ".hermes/profiles/main-assistant/skills", ".hermes/profiles/engineering-lead/skills"):
-        plan[home / root / "personal-backlog"] = skill
-    plan[home / ".agents/workflows/POLICY.md"] = ROOT / "workflows/POLICY.md"
-    dock_path = home / ".config/cmux/dock.json"
-    dock = load_json(dock_path)
-    controls = dock.get("controls", [])
-    if not isinstance(controls, list) or not all(isinstance(control, dict) for control in controls):
-        raise ValueError(f"Expected Dock controls array: {dock_path}")
-    own_control = json.loads(source_bytes("integrations/personal-backlog/dock.json", home))["controls"][0]
-    dock["controls"] = [own_control if control.get("id") == own_control["id"] else control
-                        for control in controls]
-    if not any(control.get("id") == own_control["id"] for control in controls):
-        dock["controls"].append(own_control)
-    plan[dock_path] = json_bytes(dock)
     return plan
 
 
@@ -271,74 +208,9 @@ def designer_plan(home):
     for relative in ("POLICY.md", "execution/AGENTS.md"):
         plan[home / ".agents/workflows" / relative] = ROOT / "workflows" / relative
     plan[home / ".agents/skills/POLICY.md"] = ROOT / "skills/POLICY.md"
-    for name in ("visual-design", "writing", "no-ai-slop"):
+    for name in ("visual-design", "writing"):
         plan[home / ".agents/skills" / name] = ROOT / "skills" / name
     return plan
-
-
-
-
-def sidebar_plan(home, preferences):
-    path = home / ".config/cmux/sidebars/workspaces-local.js"
-    check_destination(path, home)
-    spec = importlib.util.spec_from_file_location("cmux_sidebar_producer", ROOT / "integrations/cmux-sidebar/producer.py")
-    producer = importlib.util.module_from_spec(spec)
-    # A dry run must not create a bytecode cache in the checkout.
-    bytecode = sys.dont_write_bytecode
-    try:
-        sys.dont_write_bytecode = True
-        spec.loader.exec_module(producer)
-    finally:
-        sys.dont_write_bytecode = bytecode
-    position = "top"
-    saved = {}
-    if path.exists():
-        lines = path.read_text().split("\n", 3)
-        values = []
-        for line, name, wrapped in zip(lines, ("externalSnapshot", "externalPosition", "sidebarConfig"), (True, False, True)):
-            prefix = f"const {name} = " + ("JSON.parse(" if wrapped else "")
-            suffix = ");" if wrapped else ";"
-            if not line.startswith(prefix) or not line.endswith(suffix):
-                raise ValueError(f"Invalid generated sidebar header: {path}")
-            values.append(json.loads(line[len(prefix):-len(suffix)]))
-        if (len(values) != 3 or not isinstance(values[0], str) or not isinstance(values[2], str)
-                or values[1] not in ("top", "bottom")):
-            raise ValueError(f"Invalid generated sidebar header: {path}")
-        raw = values[0].encode("utf-8")
-        producer.strict_json(raw)
-        position = values[1]
-        config = json.loads(values[2])
-        if not isinstance(config, dict) or not isinstance(config.get("preferences"), dict):
-            raise ValueError(f"Invalid generated sidebar preferences: {path}")
-        saved = config["preferences"]
-    else:
-        defaults = load_json(ROOT / "integrations/cmux-sidebar/example-config.json")
-        raw, _ = producer.build_snapshot({"intervalSeconds": defaults["intervalSeconds"], "sections": []}, ROOT)
-    saved.update(preferences)
-    return {path: producer.render_sidebar(raw, position, producer.sidebar_config(saved=saved, home=home))}
-
-
-def hermes_adapter_plan(home):
-    """Wrap only the known Hermes launcher; never rewrite profile data or consent."""
-    launcher = home / ".local/bin/hermes"
-    original = home / ".hermes/cmux-bridge/hermes-original"
-    if not launcher.exists() and not launcher.is_symlink():
-        return {}
-    check_destination(launcher, home)
-    check_destination(original, home)
-    wrapper = source_bytes("integrations/hermes-cmux/hermes.in", home)
-    current = launcher.read_bytes()
-    if current == wrapper:
-        if not original.is_file():
-            raise ValueError("Hermes adapter launcher has no preserved original entrypoint")
-        return {original: original.read_bytes(), launcher: wrapper}
-    lines = current.decode().splitlines()
-    command = shlex.split(lines[1]) if len(lines) == 2 and lines[0] == "#!/bin/sh" else []
-    if (len(command) != 3 or command[0] != "exec"
-            or not Path(command[1]).is_absolute() or command[2] != "$@"):
-        raise ValueError(f"Refusing to replace custom Hermes launcher: {launcher}")
-    # Preserve the executable before switching the public launcher to it.
-    return {original: current, launcher: wrapper}
 
 
 def browser_plan(home):
@@ -400,18 +272,12 @@ def build_plan(home, profile):
     names = catalog["selected"] + catalog["profiles"][profile]
     selected = {name: catalog["mcpServers"][name] for name in names}
     owned = set(catalog["mcpServers"]) | set(previous.get("servers", []))
-    plan = hermes_adapter_plan(home)
+    plan = {}
     for source, target in FILES.items():
         destination = home / target
         if source.endswith((".json", ".jsonc")):
             current = load_json(destination)
             selected_settings = json.loads(source_bytes(source, home))
-            if source == "agents/opencode/profiles/default/opencode.jsonc":
-                instructions = current.get("instructions", [])
-                if not isinstance(instructions, list):
-                    raise ValueError(f"Expected instructions array: {destination}")
-                selected_settings["instructions"] = instructions + [
-                    item for item in selected_settings["instructions"] if item not in instructions]
             current.update(selected_settings)
             plan[destination] = json_bytes(current)
         else:
@@ -432,14 +298,7 @@ def build_plan(home, profile):
     current["mcp_servers"] = servers
     plan[path] = toml_bytes(current)
     tomllib.loads(plan[path].decode())
-    path = home / ".config/cmux/cmux.json"
-    current = load_json(path)
-    selected_settings = json.loads(source_bytes("cmux/cmux.json", home))
-    current["automation"] = {**current.get("automation", {}), **selected_settings.pop("automation")}
-    current.update(selected_settings)
-    plan[path] = json_bytes(current)
     plan.update(workflow_plan(home))
-    plan.update(backlog_plan(home))
     plan.update(browser_plan(home))
     retired = {home / target: Path(source) for target, source in previous.get("links", {}).items() if home / target not in plan}
     managed_links = {path: content for path, content in plan.items() if isinstance(content, Path)}
@@ -464,9 +323,9 @@ def check_destination(path, home, link=None):
         raise ValueError(f"Expected destination file: {path}")
 
 
-def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=False, only_designer=False,
+def sync(home, dry_run, only_browser=False, only_designer=False,
          only_workflows=False, profile=None):
-    scoped = only_backlog or only_hermes or only_browser or only_designer or only_workflows
+    scoped = only_browser or only_designer or only_workflows
     if profile is not None and scoped:
         raise ValueError("--profile requires a full sync; omit --only-*")
     state_path = home / ".local/state/dev-stack/managed.json"
@@ -475,15 +334,9 @@ def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=Fals
         if not dry_run and (not shutil.which("node") or not shutil.which("npm")):
             raise ValueError("Browser setup requires Node.js 22.12+ and npm on PATH")
         plan, retired = browser_plan(home), {}
-    elif only_hermes:
-        plan = {home / FILES[source]: source_bytes(source, home) for source in (
-            "integrations/hermes-cmux/hook_adapter.py", "integrations/hermes-cmux/startup_session.py",
-            "integrations/hermes-cmux/cmux.py")}
-        plan.update(hermes_adapter_plan(home))
-        retired = {}
-    elif only_backlog or only_designer or only_workflows:
+    elif only_designer or only_workflows:
         plan = (workflow_plan(home) if only_workflows else
-                designer_plan(home) if only_designer else backlog_plan(home))
+                designer_plan(home))
         retired = {}
         state = dict(previous)
         state["links"] = dict(previous.get("links", {}))
@@ -497,16 +350,6 @@ def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=Fals
         profile = profile if profile is not None else previous.get("profile", "work")
         plan, retired = build_plan(home, profile)
         print(f"Machine profile: {profile}")
-    native = not scoped and sys.platform == "darwin" and home == Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
-    preferences = load_json(ROOT / "cmux/preferences.json") if not scoped else {}
-    for name, value in preferences.items():
-        if not isinstance(value, (str, bool, int, float)):
-            raise ValueError(f"Unsupported native preference: {name}")
-    exported = subprocess.run(["defaults", "export", "com.cmuxterm.app", "-"], capture_output=True, check=True).stdout if native and not dry_run else None
-    if not scoped:
-        appearance = plistlib.loads(exported) if exported else {}
-        appearance.update(preferences)
-        plan.update(sidebar_plan(home, appearance))
     backup = home / ".local/state/dev-stack/backups" / str(time.time_ns())
     changes = []
     previous_links = previous.get("links", {})
@@ -531,8 +374,6 @@ def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=Fals
             changes.append((path, None))
     for path, _ in changes:
         check_destination(backup / path.relative_to(home), home)
-    if native:
-        check_destination(backup / "native/cmux.plist", home)
     for path, content in changes:
         print(f"{'Would sync' if dry_run else 'Syncing'} {path}")
         if dry_run:
@@ -575,49 +416,22 @@ def sync(home, dry_run, only_backlog=False, only_hermes=False, only_browser=Fals
     print(f"{'Planned' if dry_run else 'Synced'} {len(changes)} changes; backups: {backup}")
     if only_browser:
         provision_browser(home, dry_run)
-    if native:
-        print(f"{'Would apply' if dry_run else 'Applying'} cmux preferences, native OMP/Codex hooks and workspaces-local sidebar")
-        if dry_run:
-            return
-        backup.mkdir(parents=True, mode=0o700, exist_ok=True)
-        (backup / "native").mkdir(mode=0o700, exist_ok=True)
-        (backup / "native/cmux.plist").write_bytes(exported)
-        (backup / "native/cmux.plist").chmod(0o600)
-        original = plistlib.loads(exported)
-        for name, value in preferences.items():
-            if original.get(name) == value:
-                continue
-            kind = "bool" if isinstance(value, bool) else "int" if isinstance(value, int) else "float" if isinstance(value, float) else "string"
-            subprocess.run(["defaults", "write", "com.cmuxterm.app", name, f"-{kind}", str(value).lower() if isinstance(value, bool) else str(value)], check=True)
-        if shutil.which("cmux"):
-            env = dict(os.environ, HOME=str(home), CODEX_HOME=str(home / ".codex"), PI_CODING_AGENT_DIR=str(home / ".omp/agent"))
-            env.pop("OMP_PROFILE", None)
-            env.pop("PI_PROFILE", None)
-            for agent in ("omp", "codex"):
-                subprocess.run(["cmux", "hooks", agent, "install", "--yes"], env=env, check=True)
-            subprocess.run(["cmux", "sidebar", "validate", "workspaces-local"], check=True)
-            if original.get("cmuxExtensionSidebarProviderId") != "cmux.sidebar.custom.workspaces-local":
-                subprocess.run(["cmux", "sidebar", "select", "workspaces-local"], check=True)
-        else:
-            print("cmux CLI is not installed; native hooks and sidebar activation were skipped.")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true", help="Show file changes without writes or native commands")
-    parser.add_argument("--home", type=Path, default=Path.home(), help="Destination home; isolated homes skip native macOS preferences/hooks")
+    parser.add_argument("--home", type=Path, default=Path.home(), help="Destination home; use an isolated home for validation")
     parser.add_argument("--profile", choices=("work", "personal"),
                         help="Select and remember this Mac's MCP profile during full sync (default: saved profile, otherwise work)")
     scoped = parser.add_mutually_exclusive_group()
-    scoped.add_argument("--only-backlog", action="store_true", help="Restore queue configuration and skill links only; no agent settings, native preferences, hooks or service activation")
-    scoped.add_argument("--only-hermes", action="store_true", help="Install the Hermes lifecycle adapter and preserve its original launcher; no profile, consent, auth or native preference changes")
-    scoped.add_argument("--only-browser", action="store_true", help="Configure a dedicated headless Chromium shell and explicitly download its runtime; no other agent or cmux changes")
+    scoped.add_argument("--only-browser", action="store_true", help="Configure a dedicated headless Chromium shell and explicitly download its runtime; no other agent changes")
     scoped.add_argument("--only-designer", action="store_true", help="Install the personal UI/UX model adapter; no package installation, model settings, MCP or native changes")
     scoped.add_argument("--only-workflows", action="store_true", help="Install portable workflows, skills, the OMP executor template and visual model adapter without changing model settings, MCPs, task data, hooks or active routines; no obsolete-link retirement")
     args = parser.parse_args()
     try:
-        sync(args.home.expanduser().resolve(), args.dry_run, args.only_backlog, args.only_hermes,
-             args.only_browser, args.only_designer, args.only_workflows, profile=args.profile)
+        sync(args.home.expanduser().resolve(), args.dry_run, args.only_browser,
+             args.only_designer, args.only_workflows, profile=args.profile)
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
         print(f"Sync failed: {error}", file=sys.stderr)
         return 1

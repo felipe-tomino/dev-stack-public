@@ -20,9 +20,6 @@ js_repl = false
 ["plugins"."google-drive@openai-curated"]
 "enabled" = true
 
-["plugins"."github@openai-curated"]
-"enabled" = true
-
 ["plugins"."chrome@openai-bundled"]
 "enabled" = true
 
