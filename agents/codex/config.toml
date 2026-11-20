@@ -20,6 +20,9 @@ js_repl = false
 ["plugins"."google-drive@openai-curated"]
 "enabled" = true
 
+["plugins"."egm@egm"]
+"enabled" = true
+
 ["plugins"."chrome@openai-bundled"]
 "enabled" = true
 
@@ -55,6 +58,10 @@ js_repl = false
 
 ["plugins"."code-review@openai-bundled"]
 "enabled" = true
+
+[marketplaces.egm]
+source_type = "git"
+source = "https://github.com/google/elephant-goldfish-model.git"
 
 ["desktop"]
 "keepRemoteControlAwakeWhilePluggedIn" = true

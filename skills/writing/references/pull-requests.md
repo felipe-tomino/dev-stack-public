@@ -25,6 +25,6 @@ Without a repository template, use:
 <Only when material: affected surface and reversal/migration constraints.>
 ```
 
-**Complete when:** the requested body is ready to use, honors its template, and every change/evidence claim is grounded. Drafting does not authorize publication. Create/update a PR only when the request authorizes that external write; commit, push and tracker changes remain separately scoped.
+**Complete when:** the requested body is ready to use, honors its template, and every change/evidence claim is grounded. Commit, push and tracker changes remain separately scoped from an authorized PR write.
 
 Visual-explanation inspiration and its upstream license are retained in [credits.md](credits.md).

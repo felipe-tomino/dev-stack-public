@@ -6,7 +6,7 @@ metadata:
   revision: 49dd158d1076134a641b33efb035946536778336
   variant: personal-shared
 ---
-Read `~/.agents/skills/POLICY.md` unless already current. Apply to authorized edits of agent-consumed skills, steering files or references; it does not authorize repository-wide reorganization.
+Read `~/.agents/workflows/POLICY.md` unless already current. Apply to authorized edits of agent-consumed skills, steering files or references; it does not authorize repository-wide reorganization.
 
 ## Single authority
 
@@ -38,6 +38,6 @@ Remove repeated governance, obsolete paths, irrelevant branches and instructions
 
 Retain rules that prevent demonstrated mistakes and preserve safety, permission and repository boundaries. Remove model-obsolete duplication only when evidence from the task supports its removal; a newer model or shorter prompt alone is not evidence. Keep one rule authority rather than adding a competing harness policy.
 
-For changes to execution or delegation strategy, compare meaningful before/after task outcomes, including correctness, completion and total execution/coordination cost. Use the execution method's on-demand comparison guidance; ordinary wording edits do not require a strategy experiment. Cached prompt length alone is not a savings measure.
+For changes to delegation strategy or outcome-relevant guardrails, use `~/.agents/workflows/execution/EVALUATION.md`. Ordinary wording edits need link/discovery checks, not a strategy experiment.
 
 **Complete when:** each retained document has a distinct trigger and observable outcome, rules have a single owner, conditional links resolve to useful material, and no instruction depends on unsupported runtime mechanics. Report actual validation only; editing instructions does not itself require running the workflows they describe.

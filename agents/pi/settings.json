@@ -1,3 +1,11 @@
 {
+  "defaultTools": ["+codemode"],
+  "defaultProvider": "openai",
+  "defaultModel": "gpt-6.2-sol",
+  "defaultThinkingLevel": "high",
+  "modelThinkingLevels": {
+    "openai/gpt-6.2-sol": "high",
+    "anthropic/claude-opus-5-5": "high"
+  },
   "skills": ["~/.agents/skills"]
 }

@@ -1,0 +1,3 @@
+#!/bin/sh
+# The non-root Docker container is the isolation boundary.
+exec /usr/bin/chromium --headless --no-sandbox --no-first-run "$@"

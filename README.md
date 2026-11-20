@@ -83,6 +83,33 @@ This is a personal adaptation of useful Matt Pocock, p-stack and Ponytail ideas,
 
 For authorized changes to executor strategy, [the on-demand comparison guide](workflows/execution/EVALUATION.md) defines replayable before/after tasks, fresh-session repetitions and outcome/coordination metrics. It is not a new stage for normal coding or wording edits; no framework, scheduled maintenance or productivity gain is implied.
 
+## Pi models and Docker isolation
+
+Pi defaults to **GPT-6.2 Sol/high**. Its small model-role extension selects **Opus 5.5/high** for design in the same conversation. Use `pi-sandbox` to run the whole agent in Docker without mounting host credential stores; ordinary `pi` remains a host process. See [Pi setup and sandbox usage](agents/pi/README.md) for model commands, first-use authentication, browser isolation and limitations.
+
+## OMP Lite with Docker
+
+`omp-lite` runs a narrow OMP tool set in Docker while preserving native `/worktree`. It uses a separate checkout, login state, and Linux headless browser; it does not replace regular OMP. See [OMP Lite setup and parallel work](agents/omp/lite/README.md).
+
+## EGM design workflow
+
+[Elephant-Goldfish Model](https://github.com/google/elephant-goldfish-model) is available on explicit invocation for brainstorming, specification drafting, independent review and drift reporting. Use the upstream workflow for the selected EGM task; retain repository standards and the shared engineering skills during implementation. Ordinary coding still uses the personal execution method.
+
+Install the complete upstream plugin through each supported coding agent's manager. Its skills require the bundled reviewer personas, document standards and integration guides; do not copy only the `skills/` directory into the shared skill root.
+
+```sh
+omp plugin marketplace add google/elephant-goldfish-model
+omp plugin install egm@egm
+
+claude plugin marketplace add google/elephant-goldfish-model
+claude plugin install egm@egm --scope user
+
+codex plugin marketplace add google/elephant-goldfish-model
+codex plugin add egm@egm
+```
+
+Sync preserves the tracked Claude and Codex enablement settings but does not download the plugin. OMP's installation is managed separately by its native plugin manager. Start fresh sessions after installation. In OMP, invoke `/skill:egm-brainstorm`; in Claude Code, `/egm:egm-brainstorm`; in Codex, choose `egm-brainstorm` from the skill picker. See the upstream [runtime guide](https://github.com/google/elephant-goldfish-model/blob/main/docs/harnesses.md) for capabilities and verification limits. Pi has no verified EGM integration here; Hermes assistance profiles continue delegating coding work.
+
 ## OMP runtime overhead
 
 [`agents/omp/config.yml`](agents/omp/config.yml) keeps engineering tools available without model-authored progress displays:
@@ -158,11 +185,11 @@ These exercise lifecycle/recovery, the inference-only subprocess and native prom
 
 ## Executor browser automation
 
-The [execution method's browser policy](workflows/execution/AGENTS.md#browser-work) requires headless automation with agent-owned browser state. OMP uses its native Puppeteer-backed Eval `browser` integration; no parallel automation framework is installed by the workflow. Project instructions own their test runners, dependencies and browser setup. Running a project's suite and inspecting its UI through the native browser are separate activities.
+The [shared browser policy](workflows/POLICY.md#browser-isolation) requires headless automation with an agent-owned executable and profile, separate from the user's browser. OMP uses its native Puppeteer-backed Eval `browser` integration; no parallel automation framework is installed by the workflow. Project instructions own their test runners, dependencies and browser setup. Running a project's suite and inspecting its UI through the native browser are separate activities.
 
 OMP's tracked configuration enables the native helper and headless mode while disabling relay, configured CDP attachment, Tern and cmux browser routing. Headless mode alone would not disable those alternative routes. The dedicated executable below keeps automation separate from personal Chrome and fails rather than falling back to it.
 
-A necessary manual user action is the only visible-browser exception, handled in the system default browser without automating personal tabs. Main Assistant and Engineering Lead remain outside this execution method.
+If authentication needs manual action, ask the user to perform it rather than taking over their browser. Browser isolation applies to executors, Main Assistant and Engineering Lead alike.
 
 ## Dedicated headless Chromium
 

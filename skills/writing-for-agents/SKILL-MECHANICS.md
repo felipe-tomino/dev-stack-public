@@ -21,7 +21,7 @@ No visibility field grants permissions or blocks ordinary file access. Consult e
 
 Each directory contains `SKILL.md` with YAML frontmatter: a valid `name`, a meaningful `description`, and applicable discovery metadata. The canonical repository source is `skills/<name>/SKILL.md`; the shared installed address is `~/.agents/skills/<name>/SKILL.md`. Claude's native symlinks point to these same source directories.
 
-Use available native file-reading tools and expand `~` if needed. Read sibling skills through their full shared path. Resolve same-directory links and scripts against the invoked skill directory, not the checkout or tool's working directory. Execution disciplines begin with `~/.agents/skills/POLICY.md`; capabilities shared with assistance begin with `~/.agents/workflows/POLICY.md` so they do not import an execution role. `metadata.source`, `metadata.revision`, and `metadata.variant: personal-shared` record attribution history; a revision is not a runtime lock or updater instruction.
+Use available native file-reading tools and expand `~` if needed. Read sibling skills through their full shared path. Resolve same-directory links and scripts against the invoked skill directory, not the checkout or tool's working directory. Implementation/test disciplines read `~/.agents/skills/POLICY.md`; research, design advice and other shared capabilities read `~/.agents/workflows/POLICY.md`. Neither pointer assigns a role. `metadata.source`, `metadata.revision`, and `metadata.variant: personal-shared` record attribution history; a revision is not a runtime lock or updater instruction.
 
 ## Splitting and routing
 

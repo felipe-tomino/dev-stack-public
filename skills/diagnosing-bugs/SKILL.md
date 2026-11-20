@@ -10,7 +10,7 @@ Read `~/.agents/skills/POLICY.md` unless already current. Use for uncertain hard
 
 ## Symptom-specific feedback
 
-Treat supplied failures as observations, not something to rerun merely for confirmation. Establish the cheapest signal that distinguishes this defect from nearby failures: an existing behavior test, real CLI/API request, browser interaction, captured trace or narrowly isolated harness. Fixtures can isolate a hypothesis but cannot prove real integration.
+Establish the cheapest signal that distinguishes this defect from nearby failures: an existing behavior test, real CLI/API request, browser interaction, captured trace or narrowly isolated harness. Fixtures can isolate a hypothesis but cannot prove real integration.
 
 Keep the signal sharp (the exact wrong result, rejection, timing or state), repeatable where possible, and fast enough for diagnosis. Pin time/seeds or narrow setup when useful. For intermittent failures, report conditions, trial count and failure rate rather than claiming determinism. Minimize only enough to distinguish causes; preserve the original scenario.
 
@@ -22,11 +22,11 @@ Rank only hypotheses the evidence supports. Each predicts an observable differen
 
 For performance, establish a like-for-like baseline with workload and conditions, then use timing, profiles, query plans or bisection to locate the cost. Measure the same scenario after the fix; a faster toy harness is not evidence about the original regression. Arbitrary sleeps are probes, not fixes.
 
-Redact secrets before recording commands, outputs or artifacts; credentials stay in the environment. Tag temporary instrumentation so it can be removed. Inspect reachable code/artifacts before requesting inaccessible access or evidence; production instrumentation needs explicit authorization.
+Tag temporary instrumentation so it can be removed. Inspect reachable code/artifacts before requesting inaccessible access or evidence; production instrumentation needs explicit authorization.
 
 ## Fix and proof
 
-Once the cause is supported and implementation is authorized, make the smallest causal fix. Add a permanent regression test when it protects plausible risky behavior at a seam that reaches the real bug pattern. A shallow test that omits the triggering caller chain gives false confidence; use an established integration seam or state the coverage limitation. Test-first is useful when it resolves uncertainty, not a universal gate.
+Once the cause is supported and implementation is authorized, make the smallest causal fix. Add a permanent regression test when it protects plausible risky behavior at a seam that reaches the real bug pattern. A shallow test that omits the triggering caller chain gives false confidence; use an established integration seam or state the coverage limitation. Use `tdd` when test-first feedback would resolve remaining behavioral uncertainty.
 
 Exercise the changed real path under the execution method. Compare the original symptom, or measured original workload, with the supplied/baseline evidence. Remove temporary probes and sensitive captures unless requested as deliverables.
 

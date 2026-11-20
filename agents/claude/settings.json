@@ -36,13 +36,20 @@
     ]
   },
   "enabledPlugins": {
-    "whiteboard@devfast": true
+    "whiteboard@devfast": true,
+    "egm@egm": true
   },
   "extraKnownMarketplaces": {
     "devfast": {
       "source": {
         "source": "github",
         "repo": "devdotfast/whiteboard"
+      }
+    },
+    "egm": {
+      "source": {
+        "source": "github",
+        "repo": "google/elephant-goldfish-model"
       }
     }
   },

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Chromium's inner namespace sandbox is unavailable with Docker's dropped caps;
+# the non-root, whole-process container remains the isolation boundary.
+export XDG_CONFIG_HOME="$(mktemp -d /tmp/pi-chromium-config.XXXXXX)"
+export XDG_CACHE_HOME="$(mktemp -d /tmp/pi-chromium-cache.XXXXXX)"
+exec /usr/bin/chromium --headless --no-sandbox --no-first-run --no-default-browser-check \
+    --user-data-dir="$(mktemp -d /tmp/pi-chromium.XXXXXX)" "$@"

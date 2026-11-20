@@ -43,6 +43,11 @@ CONTEXTS = {
     ".codex/AGENTS.md": "agents/codex/AGENTS.md",
     ".claude/CLAUDE.md": "agents/claude/AGENTS.md",
 }
+WORKFLOW_LINKS = {
+    ".pi/agent/extensions/work-mode.ts": "agents/pi/work-mode.ts",
+    ".local/bin/pi-sandbox": "agents/pi/sandbox/launch.py",
+    ".local/bin/omp-lite": "agents/omp/lite/launch.py",
+}
 AUTH_FIELDS = ("headers", "oauth", "auth", "env", "bearer_token_env_var", "http_headers", "env_http_headers")
 
 
@@ -166,6 +171,7 @@ def workflow_plan(home):
         raise ValueError(f"Refusing to replace custom executor template: {prompt}")
     plan = {home / target: source_bytes(source, home) for target, source in CONTEXTS.items()}
     plan[prompt] = ROOT / "agents/omp/SYSTEM_TEMPLATE.md"
+    plan.update({home / target: ROOT / source for target, source in WORKFLOW_LINKS.items()})
     for source, target in FILES.items():
         if source.endswith(".md") or source.endswith("/weekday-brief.json"):
             destination = home / target

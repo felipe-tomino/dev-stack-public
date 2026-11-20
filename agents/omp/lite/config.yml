@@ -1,0 +1,42 @@
+modelRoles:
+  default: openai-codex/gpt-6.2-sol:high
+  designer: anthropic/claude-opus-5-5:high
+skills:
+  customDirectories:
+    - ~/.agents/skills
+tools:
+  intentTracing: false
+  xdev: true
+  xdevDocs: catalog
+  xdevNotices: false
+mcp:
+  enableProjectConfig: false
+async:
+  enabled: false
+advisor:
+  enabled: false
+plan:
+  enabled: false
+goal:
+  enabled: false
+eval:
+  py: false
+  tools:
+    enabled: false
+browser:
+  enabled: true
+  headless: true
+  webkit: false
+  relay: false
+  cdpUrl: null
+  tern: false
+  cmux: false
+computer:
+  enabled: false
+update:
+  auto: false
+worktree:
+  clone: false
+  cleanSource: false
+  onStart: off
+  onExit: keep
