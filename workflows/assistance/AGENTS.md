@@ -13,6 +13,8 @@ The user can work directly with either assistant or any executor. These are supp
 
 Use `~/.agents/skills/writing/SKILL.md` for reusable communications, `~/.agents/skills/google-workspace/SKILL.md` for Google Workspace access. Follow their common safety imports, not execution methodology. For briefs, selected-meeting preparation, correspondence drafts, or work reports, read `executive-assistant.md` here.
 
+For an explicit Elephant-Goldfish Model (EGM) request, use the existing engineering handoff to the user's chosen EGM-enabled OMP, Claude Code, or Codex session. Include the requested EGM step, goal, workspace, and relevant artifact paths. If there is no authorized target or transport, prepare the handoff for the user; do not run EGM in the assistance session or silently select an executor.
+
 ## Evidence, records and permissions
 
 The runtime adapter supplies role identity, private record roots, current handoff, source-access records, messaging capability and routine configuration. Read those current records when continuing work; do not invent paths or assume another runtime's connectors exist. Main Assistant owns administrative/personal evidence; Engineering Lead owns product and engineering evidence, including preserved legacy product artifacts.

@@ -1,5 +1,10 @@
 # Changelog
 
+## Keep the host agents and route EGM across them
+
+- Remove the Docker launchers and their installer wiring. Keep regular OMP, Pi model switching, and dedicated host headless Chromium.
+- Use the full upstream EGM plugin in OMP, Claude Code, and Codex. Pi and Hermes route explicit EGM requests to a user-selected supported executor instead of attempting an in-session review.
+
 ## Reduce executor time to first useful feedback
 
 - Ask for an early evidence-backed finding and demonstrate the smallest useful runtime slice before lengthy completion gates; retain required checks and consequential independent review.

@@ -1,6 +1,0 @@
-{
-  "mcpServers": {
-    "mobbin": {"url": "https://api.mobbin.com/mcp"},
-    "uxpeak": {"url": "https://connect.uxpeak.com"}
-  }
-}
